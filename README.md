@@ -10,7 +10,16 @@ Standalone, multi-tenant salon reservation application. This project is intentio
 4. Run `pnpm prisma:seed`.
 5. Run `pnpm dev`.
 
-The local seed creates `admin@salonomia.local` with password `Salonomia-Local-Only-1!`. Change or remove it outside local development.
+The local seed creates one working account per access level. All local demo accounts use password `Salonomia-Local-Only-1!`:
+
+| Access level | Email |
+| --- | --- |
+| Super Admin | `superadmin@salonomia.local` |
+| Salon Admin | `salonadmin@salonomia.local` |
+| Salon Manager | `salonmanager@salonomia.local` |
+| Customer | `customer@salonomia.local` |
+
+Change or remove these accounts outside local development.
 
 ## Security deployment note
 
