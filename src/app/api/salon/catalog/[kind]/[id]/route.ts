@@ -1,0 +1,7 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requireTenantMembership } from "@/server/authorization";
+import { prisma } from "@/lib/prisma";
+const service=z.object({name:z.string().min(2).optional(),priceCents:z.number().int().min(0).optional(),durationMinutes:z.number().int().min(15).optional(),bufferMinutes:z.number().int().min(0).optional(),active:z.boolean().optional(),sortOrder:z.number().int().min(0).optional()});
+const provider=z.object({name:z.string().min(2).optional(),bio:z.string().max(500).nullable().optional(),active:z.boolean().optional()});
+export async function PATCH(request:Request,{params}:{params:Promise<{kind:string;id:string}>}){try{const {salon}=await requireTenantMembership(["SALON_ADMIN"]);const {kind,id}=await params;const raw=await request.json();if(kind==="services"){const data=service.parse(raw);const row=await prisma.service.updateMany({where:{id,salonId:salon.id},data});if(!row.count)throw new Error("SERVICE_NOT_FOUND")}else if(kind==="providers"){const data=provider.parse(raw);const row=await prisma.provider.updateMany({where:{id,salonId:salon.id},data});if(!row.count)throw new Error("PROVIDER_NOT_FOUND")}else throw new Error("INVALID_CATALOG_KIND");await prisma.auditLog.create({data:{salonId:salon.id,action:`CATALOG_${kind.toUpperCase()}_UPDATED`,targetType:kind,targetId:id}});return NextResponse.json({ok:true})}catch(error){return NextResponse.json({code:error instanceof Error?error.message:"CATALOG_UPDATE_FAILED"},{status:400})}}

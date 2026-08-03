@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+enum GlobalRole {
+  CUSTOMER
+  SUPER_ADMIN
+}
+enum MembershipRole {
+  SALON_ADMIN
+  SALON_MANAGER
+}
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REJECTED
+  COMPLETED
+  NO_SHOW
+  NEEDS_REASSIGNMENT
+}
+
+model User {
+  id String @id @default(cuid())
+  name String
+  email String @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+  image String?
+  globalRole GlobalRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  sessions Session[]
+  accounts Account[]
+  memberships Membership[]
+  auditLogs AuditLog[] @relation("ActorAuditLogs")
+  @@map("salonomia_user")
+}
+model Session {
+  id String @id @default(cuid())
+  token String @unique
+  userId String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@map("salonomia_session")
+}
+model Account {
+  id String @id @default(cuid())
+  accountId String
+  providerId String
+  userId String
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@unique([providerId, accountId])
+  @@map("salonomia_account")
+}
+model Verification {
+  id String @id @default(cuid())
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([identifier, value])
+  @@map("salonomia_verification")
+}
+model Salon {
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  description String
+  address String
+  city String
+  phone String
+  timezone String @default("Asia/Baku")
+  imageUrl String?
+  rating Decimal @default(5) @db.Decimal(2,1)
+  status TenantStatus @default(ACTIVE)
+  bookingLeadMinutes Int @default(60)
+  cancellationHours Int @default(24)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  memberships Membership[]
+  services Service[]
+  providers Provider[]
+  appointments Appointment[]
+  businessHours BusinessHour[]
+  auditLogs AuditLog[]
+  @@map("salonomia_salon")
+}
+model Membership {
+  id String @id @default(cuid())
+  userId String
+  salonId String
+  role MembershipRole
+  active Boolean @default(true)
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  salon Salon @relation(fields:[salonId],references:[id], onDelete:Cascade)
+  @@unique([userId,salonId])
+  @@index([salonId,role])
+  @@map("salonomia_membership")
+}
+model Service {
+  id String @id @default(cuid())
+  salonId String
+  name String
+  description String?
+  durationMinutes Int
+  bufferMinutes Int @default(0)
+  priceCents Int
+  active Boolean @default(true)
+  sortOrder Int @default(0)
+  salon Salon @relation(fields:[salonId],references:[id],onDelete:Cascade)
+  providers ProviderService[]
+  appointments Appointment[]
+  @@index([salonId,active])
+  @@map("salonomia_service")
+}
+model Provider {
+  id String @id @default(cuid())
+  salonId String
+  name String
+  bio String?
+  imageUrl String?
+  active Boolean @default(true)
+  salon Salon @relation(fields:[salonId],references:[id],onDelete:Cascade)
+  services ProviderService[]
+  appointments Appointment[]
+  hours ProviderHour[]
+  @@index([salonId,active])
+  @@map("salonomia_provider")
+}
+model ProviderService {
+  providerId String
+  serviceId String
+  provider Provider @relation(fields:[providerId],references:[id],onDelete:Cascade)
+  service Service @relation(fields:[serviceId],references:[id],onDelete:Cascade)
+  @@id([providerId,serviceId])
+  @@map("salonomia_provider_service")
+}
+model BusinessHour {
+  id String @id @default(cuid())
+  salonId String
+  weekday Int
+  opensAt String
+  closesAt String
+  closed Boolean @default(false)
+  salon Salon @relation(fields:[salonId],references:[id],onDelete:Cascade)
+  @@unique([salonId,weekday])
+  @@map("salonomia_business_hour")
+}
+model ProviderHour {
+  id String @id @default(cuid())
+  providerId String
+  weekday Int
+  startsAt String
+  endsAt String
+  provider Provider @relation(fields:[providerId],references:[id],onDelete:Cascade)
+  @@unique([providerId,weekday])
+  @@map("salonomia_provider_hour")
+}
+model Appointment {
+  id String @id @default(cuid())
+  bookingRef String @unique
+  salonId String
+  serviceId String
+  providerId String
+  customerName String
+  customerEmail String
+  customerPhone String
+  startsAt DateTime
+  endsAt DateTime
+  blockedEndTime DateTime
+  status AppointmentStatus @default(PENDING)
+  priceCents Int
+  manageTokenHash String @unique
+  idempotencyKey String @unique
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  salon Salon @relation(fields:[salonId],references:[id],onDelete:Restrict)
+  service Service @relation(fields:[serviceId],references:[id],onDelete:Restrict)
+  provider Provider @relation(fields:[providerId],references:[id],onDelete:Restrict)
+  @@index([salonId,startsAt])
+  @@index([providerId,startsAt,blockedEndTime])
+  @@map("salonomia_appointment")
+}
+model AuditLog {
+  id String @id @default(cuid())
+  salonId String?
+  actorId String?
+  action String
+  targetType String
+  targetId String
+  metadata Json?
+  createdAt DateTime @default(now())
+  salon Salon? @relation(fields:[salonId],references:[id],onDelete:SetNull)
+  actor User? @relation("ActorAuditLogs",fields:[actorId],references:[id],onDelete:SetNull)
+  @@index([salonId,createdAt])
+  @@map("salonomia_audit_log")
+}
