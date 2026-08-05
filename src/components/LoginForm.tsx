@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronLeft, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
@@ -21,7 +21,7 @@ function useSafeNext() {
 function BlockedSalonNotice() {
   const searchParams = useSearchParams();
   if (searchParams.get("blocked") !== "salon_inactive") return null;
-  return <p className="auth-ref-notice warning" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>Bu salon hazırda deaktiv edilib. Admin panelinə giriş bloklanıb — sualınız varsa platforma dəstəyi ilə əlaqə saxlayın.</span></p>;
+  return <p className="auth-notice warning" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>Bu salon hazırda deaktiv edilib. Admin panelinə giriş bloklanıb — sualınız varsa platforma dəstəyi ilə əlaqə saxlayın.</span></p>;
 }
 
 export function LoginForm({ mode = "login" }: { mode?: AuthMode }) {
@@ -50,17 +50,23 @@ function SignInForm() {
     router.push(next ?? "/post-login");
   }
 
-  return <AuthShell title="Xoş gəldiniz!" subtitle="Sevdiyiniz salon və ustaları seçin, rezervasiyanızı asanlıqla edin." variant="login">
-    <form action={submit} className="auth-ref-form">
+  return <AuthShell
+    variant="login"
+    next={next}
+    eyebrow="Xoş gəlmisiniz"
+    title="Hesabınıza daxil olun"
+    subtitle="Sevdiyiniz salon və ustaları seçin, rezervasiyanızı asanlıqla edin."
+  >
+    <form action={submit} className="auth-form">
       <GoogleButton label="Google ilə davam et" onClick={() => setError("Google OAuth hazırda aktiv deyil. E-poçt və şifrə ilə daxil olun.")} />
       <Divider />
       <AuthInput icon="mail" id="login-email" name="email" label="E-poçt" placeholder="Email ünvanınız" type="email" autoComplete="email" />
       <AuthInput icon="lock" id="login-password" name="password" label="Şifrə" type={showPassword ? "text" : "password"} autoComplete="current-password" trailing={<PasswordToggle shown={showPassword} setShown={setShowPassword} />} />
-      <Link className="auth-forgot" href="/forgot-password">Şifrəni unutmusunuz?</Link>
+      <div className="auth-inline-links"><Link href="/forgot-password">Şifrəni unutmusunuz?</Link></div>
       <BlockedSalonNotice />
-      {error && <p className="auth-ref-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
-      <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Giriş edilir…" : "Daxil ol"}</button>
-      <p className="auth-bottom-copy">Hesabınız yoxdur? <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}>Qeydiyyatdan keçin</Link></p>
+      {error && <p className="auth-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
+      <button className="auth-submit" disabled={pending} type="submit">{pending ? "Giriş edilir…" : "Daxil ol"}</button>
+      <p className="auth-bottom">Hesabınız yoxdur? <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}>Qeydiyyatdan keçin</Link></p>
     </form>
   </AuthShell>;
 }
@@ -94,19 +100,27 @@ function RegisterForm() {
     router.push(next ?? "/post-login");
   }
 
-  return <AuthShell title="Hesab yaradın" subtitle="Rezervasiya etmək üçün hesab yaratmağınız tələb olunur." variant="register">
-    <form action={submit} className="auth-ref-form">
+  return <AuthShell
+    variant="register"
+    next={next}
+    eyebrow="Yeni müştəri"
+    title="Hesab yaradın"
+    subtitle="Rezervasiya etmək üçün hesab yaratmağınız tələb olunur."
+  >
+    <form action={submit} className="auth-form">
       <GoogleButton label="Google ilə qeydiyyatdan keçin" onClick={() => setError("Google OAuth hazırda aktiv deyil. E-poçt və şifrə ilə qeydiyyatdan keçin.")} />
       <Divider />
-      <AuthInput icon="user" id="register-name" name="firstName" label="Ad" autoComplete="given-name" />
-      <AuthInput icon="user" id="register-surname" name="lastName" label="Soyad" autoComplete="family-name" />
+      <div className="auth-form-row two-col">
+        <AuthInput icon="user" id="register-name" name="firstName" label="Ad" autoComplete="given-name" />
+        <AuthInput icon="user" id="register-surname" name="lastName" label="Soyad" autoComplete="family-name" />
+      </div>
       <AuthInput icon="mail" id="register-email" name="email" label="Email ünvanı" type="email" autoComplete="email" />
       <AuthInput icon="lock" id="register-password" name="password" label="Şifrə" type={showPassword ? "text" : "password"} autoComplete="new-password" trailing={<PasswordToggle shown={showPassword} setShown={setShowPassword} />} />
       <AuthInput icon="lock" id="register-repeat" name="repeatPassword" label="Şifrəni təkrar edin" type={showRepeat ? "text" : "password"} autoComplete="new-password" trailing={<PasswordToggle shown={showRepeat} setShown={setShowRepeat} />} />
-      <label className="auth-ref-check"><input required type="checkbox" defaultChecked /> <span>Mən <a href="#">istifadəçi razılaşması</a> və <a href="#">məxfilik siyasəti</a> ilə razıyam.</span></label>
-      {error && <p className="auth-ref-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
-      <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Yaradılır…" : "Qeydiyyatdan keç"}</button>
-      <p className="auth-bottom-copy">Artıq hesabınız var? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Daxil olun</Link></p>
+      <label className="auth-check"><input required type="checkbox" defaultChecked /> <span>Mən <a href="#">istifadəçi razılaşması</a> və <a href="#">məxfilik siyasəti</a> ilə razıyam.</span></label>
+      {error && <p className="auth-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
+      <button className="auth-submit" disabled={pending} type="submit">{pending ? "Yaradılır…" : "Qeydiyyatdan keç"}</button>
+      <p className="auth-bottom">Artıq hesabınız var? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Daxil olun</Link></p>
     </form>
   </AuthShell>;
 }
@@ -133,41 +147,70 @@ function ForgotPasswordForm() {
     setMessage("Əgər bu email sistemdə varsa, şifrə yeniləmə linki göndəriləcək.");
   }
 
-  return <AuthShell title="Şifrəni unutmusunuz?" subtitle="Qeydiyyatdan keçdiyiniz email ünvanını daxil edin. Sizə şifrəni yeniləmək üçün link göndərəcəyik." variant="forgot">
-    <form action={submit} className="auth-ref-form forgot">
-      <div className="auth-envelope" aria-hidden="true"><span>✦</span><div><LockKeyhole size={28} /></div><span>✦</span></div>
+  return <AuthShell
+    variant="forgot"
+    next={null}
+    eyebrow="Hesab bərpası"
+    title="Şifrəni unutmusunuz?"
+    subtitle="Qeydiyyatdan keçdiyiniz email ünvanını daxil edin. Sizə şifrəni yeniləmək üçün link göndərəcəyik."
+  >
+    <form action={submit} className="auth-form">
+      <div className="auth-icon-badge" aria-hidden="true"><LockKeyhole size={26} /></div>
       <AuthInput icon="mail" id="forgot-email" name="email" label="Email ünvanınız" type="email" autoComplete="email" />
-      {error && <p className="auth-ref-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
-      {message && <p className="auth-ref-notice success" role="status"><CheckCircle2 size={17} aria-hidden="true" /><span>{message}</span></p>}
-      <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Göndərilir…" : "Linki göndər"}</button>
-      <Link className="auth-ref-secondary" href="/login">Daxil ol səhifəsinə qayıt</Link>
+      {error && <p className="auth-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
+      {message && <p className="auth-notice success" role="status"><CheckCircle2 size={17} aria-hidden="true" /><span>{message}</span></p>}
+      <button className="auth-submit" disabled={pending} type="submit">{pending ? "Göndərilir…" : "Linki göndər"}</button>
+      <Link className="auth-secondary-link" href="/login">Daxil ol səhifəsinə qayıt</Link>
     </form>
   </AuthShell>;
 }
 
-function AuthShell({ title, subtitle, children, variant }: { title: string; subtitle: string; children: React.ReactNode; variant: AuthMode }) {
-  return <main className={`auth-ref-page ${variant}`}>
-    <section className="auth-ref-phone">
-      <Link className="auth-ref-back" href="/" aria-label="Geri">←</Link>
-      {variant === "login" ? <div className="auth-brand-block"><h1>SALONOMIA</h1><i>✦</i><p>GÖZƏLLİYİNİZƏ ZAMAN AYIRIN</p></div> : <i className="auth-sparkle">✦</i>}
-      <div className="auth-ref-copy"><h2>{title}</h2><p>{subtitle}</p></div>
-      {children}
+function ModeSwitcher({ variant, next }: { variant: AuthMode; next: string | null }) {
+  const suffix = next ? `?next=${encodeURIComponent(next)}` : "";
+  return <nav className="auth-tabs" aria-label="Giriş rejimi">
+    <Link href={`/login${suffix}`} className={variant === "login" ? "active" : ""} aria-current={variant === "login" ? "page" : undefined}>Daxil ol</Link>
+    <Link href={`/register${suffix}`} className={variant === "register" ? "active" : ""} aria-current={variant === "register" ? "page" : undefined}>Qeydiyyat</Link>
+  </nav>;
+}
+
+function AuthShell({ eyebrow, title, subtitle, children, variant, next }: { eyebrow: string; title: string; subtitle: string; children: React.ReactNode; variant: AuthMode; next: string | null }) {
+  return <main className={`auth-shell ${variant}`}>
+    <section className="auth-visual" aria-hidden="true">
+      <div className="auth-visual-top">
+        <Link className="auth-visual-back" href="/" aria-label="Ana səhifəyə qayıt"><ChevronLeft size={18} /> Ana səhifə</Link>
+      </div>
+      <p className="auth-wordmark"><b>Salonomia</b><span>Gözəlliyinizə zaman ayırın</span></p>
+      <blockquote className="auth-visual-quote">Rezervasiyadan ödənişə qədər hər addımı sadələşdirən, salonlar üçün premium idarəetmə təcrübəsi.</blockquote>
+    </section>
+
+    <section className="auth-panel">
+      <div className="auth-panel-inner">
+        {variant !== "forgot" && <ModeSwitcher variant={variant} next={next} />}
+        <div className="auth-copy">
+          <p className="eyebrow-divider"><span>{eyebrow}</span></p>
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+        </div>
+        {children}
+      </div>
     </section>
   </main>;
 }
 
 function AuthInput({ icon, id, name, label, placeholder, type = "text", autoComplete, trailing }: { icon: "mail" | "lock" | "user"; id: string; name: string; label: string; placeholder?: string; type?: string; autoComplete?: string; trailing?: React.ReactNode }) {
   const Icon = icon === "mail" ? Mail : icon === "lock" ? LockKeyhole : UserRound;
-  return <label className="auth-ref-input" htmlFor={id}>
-    <Icon size={21} aria-hidden="true" />
-    <span className="sr-only">{label}</span>
-    <input id={id} name={name} type={type} required aria-label={label} placeholder={placeholder ?? label} autoComplete={autoComplete} />
-    {trailing}
+  return <label className="auth-field" htmlFor={id}>
+    <span>{label}</span>
+    <span className="auth-field-control">
+      <Icon size={19} aria-hidden="true" />
+      <input id={id} name={name} type={type} required aria-label={label} placeholder={placeholder ?? label} autoComplete={autoComplete} />
+      {trailing}
+    </span>
   </label>;
 }
 
 function PasswordToggle({ shown, setShown }: { shown: boolean; setShown: (value: boolean) => void }) {
-  return <button type="button" aria-label={shown ? "Parolu gizlət" : "Parolu göstər"} onClick={() => setShown(!shown)}>{shown ? <EyeOff size={19} /> : <Eye size={19} />}</button>;
+  return <button type="button" aria-label={shown ? "Parolu gizlət" : "Parolu göstər"} onClick={() => setShown(!shown)}>{shown ? <EyeOff size={18} /> : <Eye size={18} />}</button>;
 }
 
 function GoogleButton({ label, onClick }: { label: string; onClick: () => void }) {

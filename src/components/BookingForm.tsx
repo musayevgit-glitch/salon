@@ -52,6 +52,8 @@ const serviceImages = [
 const fallbackSalon = "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=400&q=80";
 const fallbackAvatar = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=180&q=80";
 const weekdayShort = ["B.e", "Ç.a", "Ç.", "C.a", "C.", "Ş.", "B"];
+const stepTitles: Record<Step, string> = { 1: "Xidmət və usta seçin", 2: "Tarix və saat seçin", 3: "Rezervasiyanı təsdiqləyin" };
+const stepLabels = ["Xidmət", "Tarix və saat", "Təsdiq"];
 
 function dateKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -177,81 +179,142 @@ export function BookingForm({ salon, serviceId, services }: Props) {
   const canContinue = step === 1 ? Boolean(selectedService && selectedProvider) : step === 2 ? Boolean(date && slot) : true;
   const needsAuth = step === 3 && !sessionLoading && !session;
   const continueLabel = step === 3 ? (pending ? "Rezervasiya yaradılır..." : needsAuth ? "Daxil olub davam et" : "Rezervasiyanı yarat") : "Davam et";
+  const summaryPrice = selectedService ? money(selectedService.priceCents) : "Seçilməyib";
 
-  return <section className="shot-reservation" aria-label="Rezervasiya axını">
-    <div className="shot-phone">
-      <header className="shot-topbar">
-        <button type="button" aria-label="Geri" onClick={() => step > 1 ? setStep((step - 1) as Step) : router.push(`/salons/${salon.slug}`)}><ChevronLeft size={22} /></button>
-        <h1>{step === 1 ? "Rezervasiya et" : step === 2 ? "Tarix və saat seçin" : "Rezervasiyanı təsdiqləyin"}</h1>
-        <span aria-hidden="true" />
-      </header>
-
-      <div className="shot-screen">
-        {step === 1 && <ServiceStep salon={salon} services={services} selectedServiceId={selectedService?.id ?? ""} selectedProvider={selectedProvider} providerId={providerId} providers={providers} setProviderId={setProviderId} setSelectedServiceId={setSelectedServiceId} />}
-        {step === 2 && <DateTimeStep selectedService={selectedService} selectedProvider={selectedProvider} date={date} setDate={setDate} calendarMonth={calendarMonth} setCalendarMonth={setCalendarMonth} slots={slots} slot={slot} setSlot={setSlot} loading={loading} onEdit={() => setStep(1)} />}
-        {step === 3 && <ConfirmStep salon={salon} selectedService={selectedService} selectedProvider={selectedProvider} date={date} slot={slot} contact={contact} setContact={setContact} needsAuth={needsAuth} />}
-        {error && <p role="alert" className="shot-error">{error}</p>}
+  return <main className="reservation-page">
+    <div className="shell reservation-shell">
+      <div className="reservation-page-head">
+        <button type="button" className="back-link" onClick={() => step > 1 ? setStep((step - 1) as Step) : router.push(`/salons/${salon.slug}`)}><ChevronLeft size={16} aria-hidden="true" /> Geri</button>
+        <p className="reservation-kicker">{salon.name}</p>
+        <h1>{stepTitles[step]}</h1>
       </div>
 
-      <footer className="shot-footer">
-        <button type="button" className="shot-primary" disabled={!canContinue || pending} onClick={() => step === 3 ? void submit() : setStep((step + 1) as Step)}>{continueLabel}</button>
-        <BottomStepper step={step} />
-      </footer>
+      <ReservationStepper step={step} />
+
+      <div className="reservation-luxury">
+        <div className="reservation-main">
+          {step === 1 && <ServiceStep salon={salon} services={services} selectedServiceId={selectedService?.id ?? ""} selectedProvider={selectedProvider} providerId={providerId} providers={providers} setProviderId={setProviderId} setSelectedServiceId={setSelectedServiceId} />}
+          {step === 2 && <DateTimeStep selectedService={selectedService} selectedProvider={selectedProvider} date={date} setDate={setDate} calendarMonth={calendarMonth} setCalendarMonth={setCalendarMonth} slots={slots} slot={slot} setSlot={setSlot} loading={loading} onEdit={() => setStep(1)} />}
+          {step === 3 && <ConfirmStep salon={salon} selectedService={selectedService} selectedProvider={selectedProvider} date={date} slot={slot} contact={contact} setContact={setContact} needsAuth={needsAuth} />}
+          {error && <p role="alert" className="form-error">{error}</p>}
+        </div>
+
+        <aside className="reservation-summary-card" aria-label="Rezervasiya xülasəsi">
+          <h2>Seçimləriniz</h2>
+          <div className="summary-row"><span>Salon</span><b>{salon.name}</b></div>
+          <div className="summary-row"><span>Usta</span><b>{selectedProvider?.name ?? "Seçilməyib"}</b></div>
+          <div className="summary-row"><span>Xidmət</span><b>{selectedService?.name ?? "Seçilməyib"}</b></div>
+          <div className="summary-row"><span>Tarix</span><b>{date ? niceDate(date) : "Seçilməyib"}</b></div>
+          <div className="summary-row"><span>Saat</span><b>{slot ? timeOnly(slot) : "Seçilməyib"}</b></div>
+          <div className="price-total"><span>Ümumi məbləğ</span><b>{summaryPrice}</b></div>
+          <p className="payment-note"><Clock3 size={15} aria-hidden="true" /> Ödəniş salon daxilində nağd və ya kartla həyata keçiriləcək.</p>
+          <div className="desktop-submit">
+            <button type="button" className="button" disabled={!canContinue || pending} onClick={() => step === 3 ? void submit() : setStep((step + 1) as Step)}>{continueLabel}</button>
+          </div>
+        </aside>
+      </div>
+
+      <div className="mobile-sticky-reservation">
+        <span>Ümumi məbləğ<b>{summaryPrice}</b></span>
+        <button type="button" className="button" disabled={!canContinue || pending} onClick={() => step === 3 ? void submit() : setStep((step + 1) as Step)}>{continueLabel}</button>
+      </div>
     </div>
-  </section>;
+  </main>;
+}
+
+function ReservationStepper({ step }: { step: Step }) {
+  return <ol className="reservation-progress">
+    {stepLabels.map((label, index) => {
+      const current = (index + 1) as Step;
+      const state = current < step ? "done" : current === step ? "active" : "";
+      return <li key={label} className={state}>
+        <span>{current < step ? <Check size={13} aria-hidden="true" /> : current}</span>
+        {label}
+      </li>;
+    })}
+  </ol>;
 }
 
 function ServiceStep({ salon, services, selectedServiceId, selectedProvider, providerId, providers, setProviderId, setSelectedServiceId }: { salon: SalonSummary; services: Service[]; selectedServiceId: string; selectedProvider?: Provider; providerId: string; providers: Provider[]; setProviderId: (id: string) => void; setSelectedServiceId: (id: string) => void }) {
   return <>
-    <section className="shot-salon-card">
-      <Image src={salon.imageUrl || fallbackSalon} alt={`${salon.name} interyeri`} width={136} height={136} />
+    <section className="reservation-panel salon-summary-card">
+      <div className="salon-thumb"><Image src={salon.imageUrl || fallbackSalon} alt={`${salon.name} interyeri`} width={84} height={84} /></div>
       <div>
         <h2>{salon.name}</h2>
-        <p><MapPin size={14} /> {salon.address}, {salon.city}</p>
-        <p><Star size={14} fill="currentColor" /> {salon.rating} (128)</p>
+        <p className="muted small"><MapPin size={14} aria-hidden="true" /> {salon.address}, {salon.city}</p>
+        <p className="small"><Star size={14} fill="currentColor" aria-hidden="true" /> {salon.rating} (128 rəy)</p>
         <a href={`/salons/${salon.slug}`}>Salon profilinə bax</a>
       </div>
     </section>
-    <h3 className="shot-section-title">Usta</h3>
-    <label className="shot-master-card">
-      <Image src={selectedProvider?.imageUrl || fallbackAvatar} alt="" width={62} height={62} />
-      <span><b>{selectedProvider?.name ?? "Usta seçin"}</b><small>{selectedProvider?.bio ? "Saç stilisti" : "Gözəllik mütəxəssisi"}</small><em><Star size={13} fill="currentColor" /> 4.9 (86)</em></span>
-      <select aria-label="Usta" value={providerId} onChange={(event) => setProviderId(event.target.value)}>{providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}</select>
-      <ChevronRight size={20} aria-hidden="true" />
-    </label>
-    <h3 className="shot-section-title">Xidmət</h3>
-    <div className="shot-service-list">{services.map((service, index) => {
-      const checked = service.id === selectedServiceId;
-      return <label className={`shot-service ${checked ? "selected" : ""}`} key={service.id}>
-        <Image src={serviceImages[index % serviceImages.length]} alt="" width={62} height={62} />
-        <span><b>{service.name}</b><small>{money(service.priceCents)}</small><em>{service.durationMinutes} dəq</em></span>
-        <input type="radio" name="selectedService" checked={checked} onChange={() => setSelectedServiceId(service.id)} />
-        <i aria-hidden="true" />
-      </label>;
-    })}</div>
-    <p className="shot-note"><Info size={17} /> Qiymətlər ustaya görə dəyişə bilər.</p>
+
+    <fieldset className="reservation-panel">
+      <legend><span>1</span> Xidmət seçin</legend>
+      <div className="service-radio-list">
+        {services.map((service, index) => {
+          const checked = service.id === selectedServiceId;
+          return <label className={`service-radio-card ${checked ? "selected" : ""}`} key={service.id}>
+            <input type="radio" name="selectedService" checked={checked} onChange={() => setSelectedServiceId(service.id)} />
+            <span className="service-art"><Image src={serviceImages[index % serviceImages.length]} alt="" width={52} height={52} /></span>
+            <span className="service-copy"><b>{service.name}</b><small>{service.durationMinutes} dəq</small></span>
+            <span className="service-price">{money(service.priceCents)}</span>
+            <span className="radio-dot" aria-hidden="true" />
+          </label>;
+        })}
+      </div>
+      <p className="reservation-note"><Info size={16} aria-hidden="true" /> Qiymətlər ustaya görə dəyişə bilər.</p>
+    </fieldset>
+
+    <fieldset className="reservation-panel">
+      <legend><span>2</span> Usta seçin</legend>
+      <div className="service-radio-list">
+        {providers.map((provider) => {
+          const checked = provider.id === providerId;
+          return <label className={`service-radio-card ${checked ? "selected" : ""}`} key={provider.id}>
+            <input type="radio" name="selectedProvider" checked={checked} onChange={() => setProviderId(provider.id)} />
+            <span className="service-art"><Image src={provider.imageUrl || fallbackAvatar} alt="" width={52} height={52} /></span>
+            <span className="service-copy"><b>{provider.name}</b><small>{provider.bio ? "Saç stilisti" : "Gözəllik mütəxəssisi"}</small><em><Star size={12} fill="currentColor" aria-hidden="true" /> 4.9 (86)</em></span>
+            <span className="radio-dot" aria-hidden="true" />
+          </label>;
+        })}
+        {providers.length === 0 && <p className="empty-inline">Bu xidmət üçün usta tapılmadı.</p>}
+      </div>
+      {selectedProvider && <p className="reservation-note"><ShieldCheck size={16} aria-hidden="true" /> Seçilmiş usta: <b>{selectedProvider.name}</b></p>}
+    </fieldset>
   </>;
 }
 
 function DateTimeStep({ selectedService, selectedProvider, date, setDate, calendarMonth, setCalendarMonth, slots, slot, setSlot, loading, onEdit }: { selectedService?: Service; selectedProvider?: Provider; date: string; setDate: (value: string) => void; calendarMonth: Date; setCalendarMonth: (value: Date) => void; slots: string[]; slot: string; setSlot: (value: string) => void; loading: boolean; onEdit: () => void }) {
   return <>
-    <section className="shot-date-master">
-      <Image src={selectedProvider?.imageUrl || fallbackAvatar} alt="" width={56} height={56} />
+    <section className="reservation-panel specialist-summary-card">
+      <span className="specialist-avatar"><Image src={selectedProvider?.imageUrl || fallbackAvatar} alt="" width={54} height={54} /></span>
       <span><b>{selectedProvider?.name ?? "Usta seçilməyib"}</b><small>{selectedService?.name ?? "Xidmət"} • {selectedService ? money(selectedService.priceCents) : "Seçilməyib"}</small></span>
-      <button type="button" onClick={onEdit}><Edit size={15} /> Edit</button>
+      <button type="button" className="button secondary compact" onClick={onEdit}><Edit size={14} aria-hidden="true" /> Redaktə et</button>
     </section>
-    <h3 className="shot-section-title">Tarix seçin</h3>
-    <CalendarCard value={date} month={calendarMonth} setMonth={setCalendarMonth} onSelect={setDate} />
-    <h3 className="shot-section-title">Saat seçin</h3>
-    <div className="shot-times" aria-live="polite">
-      {loading && <p className="shot-empty">Boş saatlar yoxlanılır…</p>}
-      {!loading && slots.map((value) => <button type="button" key={value} aria-pressed={slot === value} onClick={() => setSlot(value)}>{timeOnly(value)}</button>)}
-      {!loading && date && slots.length === 0 && <p className="shot-empty">Bu tarix üçün boş saat yoxdur.</p>}
-      {!loading && !date && <p className="shot-empty">Tarix seçdikdən sonra boş saatlar görünəcək.</p>}
+
+    <div className="reservation-panel date-time-grid">
+      <div className="luxury-date-field">
+        <b>Tarix seçin</b>
+        <CalendarCard value={date} month={calendarMonth} setMonth={setCalendarMonth} onSelect={setDate} />
+        <p className="selected-date"><CalendarDays size={15} aria-hidden="true" /> Seçilmiş tarix: {niceDate(date)}</p>
+      </div>
+      <div>
+        <div className="slot-heading">
+          <label><Clock3 size={15} aria-hidden="true" /> Saat seçin</label>
+          <div className="slot-legend">
+            <span><i className="available" /> Mövcuddur</span>
+            <span><i className="selected" /> Seçilmiş</span>
+            <span><i className="busy" /> Doludur</span>
+          </div>
+        </div>
+        <div className="luxury-slots" aria-live="polite">
+          {loading && <p className="empty-inline">Boş saatlar yoxlanılır…</p>}
+          {!loading && slots.map((value) => <button type="button" className="slot" key={value} aria-pressed={slot === value} onClick={() => setSlot(value)}>{timeOnly(value)}</button>)}
+          {!loading && date && slots.length === 0 && <p className="empty-inline">Bu tarix üçün boş saat yoxdur.</p>}
+          {!loading && !date && <p className="empty-inline">Tarix seçdikdən sonra boş saatlar görünəcək.</p>}
+        </div>
+        <p className="reservation-note"><Clock3 size={15} aria-hidden="true" /> Seçilmiş saat 10 dəqiqəlik müddət üçün sizin üçün bloklanacaq.</p>
+      </div>
     </div>
-    <div className="shot-legend"><span><i className="green" /> Mövcuddur</span><span><i className="gold" /> Seçilmiş</span><span><i /> Doludur</span></div>
-    <p className="shot-note"><Clock3 size={17} /> Seçilmiş saat 10 dəqiqəlik müddət üçün sizin üçün bloklanacaq.</p>
-    <input className="shot-hidden-date" aria-label="Tarix" value={date} onChange={(event) => setDate(event.target.value)} />
   </>;
 }
 
@@ -268,28 +331,28 @@ function CalendarCard({ value, month, setMonth, onSelect }: { value: string; mon
     });
   }, [month]);
   const today = dateKey(new Date());
-  return <section className="shot-calendar">
-    <div className="shot-calendar-head">
-      <button type="button" aria-label="Əvvəlki ay" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={20} /></button>
+  return <section className="cal-grid">
+    <div className="cal-head">
+      <button type="button" aria-label="Əvvəlki ay" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={18} aria-hidden="true" /></button>
       <b>{monthTitle(month)}</b>
-      <button type="button" aria-label="Növbəti ay" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><ChevronRight size={20} /></button>
+      <button type="button" aria-label="Növbəti ay" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><ChevronRight size={18} aria-hidden="true" /></button>
     </div>
-    <div className="shot-weekdays">{weekdayShort.map((day) => <span key={day}>{day}</span>)}</div>
-    <div className="shot-days">{days.map((day) => {
+    <div className="cal-weekdays">{weekdayShort.map((day) => <span key={day}>{day}</span>)}</div>
+    <div className="cal-days">{days.map((day) => {
       const key = dateKey(day);
       const disabled = key < today;
       const other = day.getMonth() !== month.getMonth();
       return <button type="button" key={key} disabled={disabled} className={`${value === key ? "selected" : ""} ${key === today ? "today" : ""} ${other ? "muted" : ""}`} onClick={() => onSelect(key)}>{day.getDate()}</button>;
     })}</div>
-    <p><CalendarDays size={16} /> Seçilmiş tarix: {niceDate(value)}</p>
   </section>;
 }
 
 function ConfirmStep({ salon, selectedService, selectedProvider, date, slot, contact, setContact, needsAuth }: { salon: SalonSummary; selectedService?: Service; selectedProvider?: Provider; date: string; slot: string; contact: { customerName: string; customerEmail: string; customerPhone: string }; setContact: (value: { customerName: string; customerEmail: string; customerPhone: string }) => void; needsAuth?: boolean }) {
   return <>
-    {needsAuth && <p className="shot-note" role="status"><ShieldCheck size={17} /> Rezervasiyanı təsdiqləmək üçün hesabınıza daxil olmalısınız. Bütün seçimləriniz saxlanılıb — daxil olduqdan sonra buraya geri qayıdacaqsınız.</p>}
-    <section className="shot-confirm-card">
-      <h2>Rezervasiya məlumatları</h2>
+    {needsAuth && <p className="reservation-note auth-gate-note" role="status"><ShieldCheck size={16} aria-hidden="true" /> Rezervasiyanı təsdiqləmək üçün hesabınıza daxil olmalısınız. Bütün seçimləriniz saxlanılıb — daxil olduqdan sonra buraya geri qayıdacaqsınız.</p>}
+
+    <fieldset className="reservation-panel">
+      <legend><span>3</span> Rezervasiya məlumatları</legend>
       <ConfirmRow label="Salon" value={salon.name} />
       <ConfirmRow label="Usta" value={selectedProvider?.name ?? "Seçilməyib"} />
       <ConfirmRow label="Xidmət" value={selectedService?.name ?? "Seçilməyib"} />
@@ -297,30 +360,34 @@ function ConfirmStep({ salon, selectedService, selectedProvider, date, slot, con
       <ConfirmRow label="Tarix" value={niceDate(date)} />
       <ConfirmRow label="Saat" value={slot ? timeOnly(slot) : "Seçilməyib"} />
       <ConfirmRow label="Müddət" value={selectedService ? `${selectedService.durationMinutes} dəq` : "Seçilməyib"} />
+    </fieldset>
+
+    <fieldset className="reservation-panel">
+      <legend><span>4</span> Əlaqə məlumatları</legend>
+      <div className="booking-grid">
+        <label className="field"><span>Ad və soyad</span><input aria-label="Ad və soyad" value={contact.customerName} onChange={(event) => setContact({ ...contact, customerName: event.target.value })} placeholder="Aysel Məmmədova" /></label>
+        <label className="field"><span>E-poçt</span><input aria-label="E-poçt" type="email" value={contact.customerEmail} onChange={(event) => setContact({ ...contact, customerEmail: event.target.value })} placeholder="aysel@example.com" /></label>
+        <label className="field" style={{ gridColumn: "1/-1" }}><span>Telefon</span><input aria-label="Telefon" type="tel" value={contact.customerPhone} onChange={(event) => setContact({ ...contact, customerPhone: event.target.value })} placeholder="+994 50 000 00 00" /></label>
+      </div>
+    </fieldset>
+
+    <section className="reservation-panel policy-card">
+      <div>
+        <h2><ShieldCheck size={18} aria-hidden="true" /> Rezervasiya qaydaları</h2>
+        <ul>
+          <li>Rezervasiya təsdiqi salon admini tərəfindən ediləcək.</li>
+          <li>Gözləmədə statusu ilə yaradılır.</li>
+          <li>24 saat qalmış ləğv edilərsə qeyd edilə bilər.</li>
+          <li>Gecikmə halında rezervasiya ləğv oluna bilər.</li>
+        </ul>
+      </div>
     </section>
-    <section className="shot-contact-card">
-      <label>Ad və soyad<input aria-label="Ad və soyad" value={contact.customerName} onChange={(event) => setContact({ ...contact, customerName: event.target.value })} placeholder="Aysel Məmmədova" /></label>
-      <label>E-poçt<input aria-label="E-poçt" type="email" value={contact.customerEmail} onChange={(event) => setContact({ ...contact, customerEmail: event.target.value })} placeholder="aysel@example.com" /></label>
-      <label>Telefon<input aria-label="Telefon" type="tel" value={contact.customerPhone} onChange={(event) => setContact({ ...contact, customerPhone: event.target.value })} placeholder="+994 50 000 00 00" /></label>
-    </section>
-    <section className="shot-rules">
-      <h2><ShieldCheck size={20} /> Rezervasiya qaydaları</h2>
-      <ul><li>Rezervasiya təsdiqi salon admini tərəfindən ediləcək.</li><li>Gözləmədə statusu ilə yaradılır.</li><li>24 saat qalmış ləğv edilərsə qeyd edilə bilər.</li><li>Gecikmə halında rezervasiya ləğv oluna bilər.</li></ul>
-    </section>
-    <div className="shot-total"><span>Ümumi məbləğ</span><b>{selectedService ? money(selectedService.priceCents) : "Seçilməyib"}</b></div>
-    <p className="shot-pay-note"><Clock3 size={16} /> Ödəniş salon daxilində nağd və ya kartla həyata keçiriləcək.</p>
-    <p className="shot-agree">Rezervasiya yaratmaqla qaydaları qəbul etmiş olursunuz.</p>
+
+    <p className="payment-highlight"><Clock3 size={18} aria-hidden="true" /> Ödəniş salon daxilində nağd və ya kartla həyata keçiriləcək.</p>
+    <p className="reservation-note">Rezervasiya yaratmaqla qaydaları qəbul etmiş olursunuz.</p>
   </>;
 }
 
 function ConfirmRow({ label, value }: { label: string; value: string }) {
-  return <div><span>{label}</span><b>{value}</b></div>;
-}
-
-function BottomStepper({ step }: { step: Step }) {
-  const items = ["Xidmət", "Tarix və saat", "Təsdiq"];
-  return <ol className="shot-bottom-stepper">{items.map((item, index) => {
-    const current = index + 1;
-    return <li className={current <= step ? "active" : ""} key={item}><span>{current < step ? <Check size={13} /> : current}</span><em>{item}</em></li>;
-  })}</ol>;
+  return <div className="summary-row"><span>{label}</span><b>{value}</b></div>;
 }

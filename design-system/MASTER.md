@@ -106,12 +106,63 @@ editorial depth instead of a flat single-accent look.** Concretely:
 Files touched for markup in this pass: `src/app/page.tsx` (landing hero + salon grid),
 `src/app/salons/page.tsx` (catalog + featured badge), `src/app/salons/[slug]/page.tsx` (hero,
 services, team, policy eyebrows), `src/app/confirm/[bookingRef]/page.tsx` (confirmation badge),
-`src/app/salonadmin/page.tsx` and `src/app/superadmin/page.tsx` (eyebrow treatment). The
-reservation form (`BookingForm.tsx`) and auth screens (`LoginForm.tsx`, register,
-forgot-password) were intentionally left markup-untouched — they carry the most fragile,
-state-heavy wiring in the app (auth-redirect draft preservation, slot selection, manage-token
-flows) — but they still inherit every token-level upgrade above (shadows, gradients where
-`.eyebrow`/`.button` are used) for free since they consume the same shared classes.
+`src/app/salonadmin/page.tsx` and `src/app/superadmin/page.tsx` (eyebrow treatment).
+
+**Update — auth and reservation composition rebuild:** `BookingForm.tsx` and `LoginForm.tsx`
+were originally left markup-untouched (see history above) specifically to avoid destabilizing
+their fragile state wiring. A follow-up pass rebuilt both from a "phone-screenshot mockup
+centered on the page" composition (`.shot-*` / `.auth-ref-*` classes, deleted) into real
+responsive web layouts. All state, effects, and handlers in both components are byte-identical
+to before — only the JSX layout around them changed. See the two new patterns below.
+
+### Pattern: sticky-summary + stepper booking layout (`BookingForm.tsx`)
+
+Composition, top to bottom:
+- `.reservation-page-head` — back link, salon-name kicker, step title (swaps per step).
+- `.reservation-progress` — a real three-stage stepper (Xidmət / Tarix və saat / Təsdiq) with
+  gold-filled circles for the active step and a check-mark + gold fill for completed steps,
+  replacing the old plain-text bottom stepper.
+- `.reservation-luxury` — two-column grid on desktop (`≥1025px`): `.reservation-main` (the
+  active step's content — service/specialist picker, date/time picker, or confirm review) next
+  to a **persistent `.reservation-summary-card`** that builds up the running selection (salon,
+  specialist, service, date, time, price) as the user progresses through steps, plus the
+  required payment-method line and the primary continue/submit button
+  (`.desktop-submit`).
+- Below `1024px` the summary card drops out of the grid (`order:2`, static) and
+  `.mobile-sticky-reservation` — a fixed bottom bar showing the running total plus the same
+  continue button — takes over; `.desktop-submit` and `.mobile-sticky-reservation` are mutually
+  exclusive via media query, both call the exact same `submit`/`setStep` handlers.
+- Step 1 (`ServiceStep`) and the specialist list both use `.service-radio-card` (photo, name,
+  price/meta, radio dot) — a single reusable selectable-card component for both service and
+  provider choice, each wrapped in its own `fieldset`/`legend` numbered section.
+- Step 2 (`DateTimeStep`) uses `.date-time-grid` (two columns ≥760px, stacked below): a redesigned
+  calendar (`.cal-grid`/`.cal-days`, gold-filled selected day, ring on today) on the left, and
+  `.luxury-slots` — a tactile time-slot grid with `.slot-legend` (available/selected/disabled
+  swatches) and clear pressed/disabled states on the right.
+- Step 3 (`ConfirmStep`) is a proper review card: `.summary-row` line items for every booking
+  attribute, a `.policy-card` for the cancellation rules, and `.payment-highlight` — a dedicated,
+  visually weighted block (gold-subtle fill, icon, bold text) carrying the exact required copy
+  "Ödəniş salon daxilində nağd və ya kartla həyata keçiriləcək." so it can't be missed, in
+  addition to the shorter mention in the sticky summary sidebar.
+
+### Pattern: split-panel auth layout (`LoginForm.tsx`)
+
+`.auth-shell` is a two-column CSS grid ≥900px: `.auth-visual` (a fixed dark editorial brand
+panel — serif wordmark, tagline, a quote line, decorative ring textures on a near-black
+gradient) on the left, `.auth-panel` (the actual form column) on the right. Below 900px the
+grid collapses to one column and `.auth-visual` shrinks into a compact header band (wordmark +
+back link only, the quote line hides) instead of disappearing, so the brand presence survives
+on mobile.
+
+Inside `.auth-panel`: `.auth-tabs` is a real pill-shaped mode switcher (Daxil ol / Qeydiyyat,
+dark-fill active state) shown on the login and register variants — not shown on the
+forgot-password variant, which instead gets a centered `.auth-icon-badge` — so the three modes
+are visually distinct beyond a heading swap. Register's name/surname fields sit in
+`.auth-form-row.two-col` (two columns ≥480px, stacked on mobile). Every input uses
+`.auth-field` → `.auth-field-control` (icon + input, gold focus ring) with the label now
+visible above the field instead of screen-reader-only. `.auth-notice` (error/warning/success)
+is a distinct colored block with an icon, not a generic inline `<p>`, used for the blocked-salon
+warning, form errors, and the password-reset success message across all three modes.
 
 ## Radii
 
@@ -155,15 +206,22 @@ flows) — but they still inherit every token-level upgrade above (shadows, grad
 All of the below already exist in `src/app/globals.css` and the feature stylesheets, and are now
 repainted from the tokens above instead of three separate hardcoded palettes:
 
-- **Buttons:** `.button` (primary, dark-fill pill), `.button.secondary` (outline), `.shot-primary` /
-  `.auth-ref-primary` (full-width dark CTA used in the booking + auth flows).
-- **Inputs:** `.field input/select/textarea`, `.auth-ref-input`, `.catalog-form input`.
-- **Cards:** `.card`, `.service-card`, `.provider-profile`, `.panel`, `.metric`, `.tenant-hero`.
+- **Buttons:** `.button` (primary, dark-fill pill), `.button.secondary` (outline), `.auth-submit`
+  (full-width dark CTA, auth flow), `.desktop-submit`/`.mobile-sticky-reservation .button`
+  (reservation flow, same handlers, two render targets per breakpoint).
+- **Inputs:** `.field input/select/textarea`, `.auth-field-control input`, `.catalog-form input`.
+- **Cards:** `.card`, `.service-card`, `.provider-profile`, `.panel`, `.metric`, `.tenant-hero`,
+  `.reservation-panel`, `.service-radio-card`, `.reservation-summary-card`.
 - **Badges / status:** `.tag`, `.status`, `.status-pending/-confirmed/-rejected/-cancelled/-completed/-no_show/-needs_reassignment`
   (Azerbaijani labels: Gözləmədə, Təsdiqləndi, Rədd edildi, Ləğv edilib, Tamamlanıb, Gəlmədi, Yenidən təyinat).
-- **Empty states:** `.empty-state`, `.catalog-empty`, `.agenda-empty`, `.shot-empty`.
+- **Empty states:** `.empty-state`, `.catalog-empty`, `.agenda-empty`, `.empty-inline`.
 - **Navigation:** `.public-header` (customer), `.side` / `.admin` (salon admin + super admin shell,
-  `AdminShell.tsx`), `.shot-topbar` (reservation flow), `.auth-ref-back` (auth flow).
+  `AdminShell.tsx`), `.reservation-page-head .back-link` (reservation flow), `.auth-visual-back`
+  (auth flow).
+- **Auth + booking layout (see the two dedicated pattern write-ups above):** `.auth-shell` /
+  `.auth-visual` / `.auth-panel` / `.auth-tabs` / `.auth-notice`, `.reservation-luxury` /
+  `.reservation-progress` / `.reservation-summary-card` / `.cal-grid` / `.luxury-slots` /
+  `.payment-highlight`.
 - **Editorial accents (this pass):** `.eyebrow` / `.eyebrow-divider` (gradient-tick section
   label, used everywhere), `.hero-copy-rule` (vertical gold→wine rule on hero copy blocks),
   `.hero-wordmark` (serif tracked wordmark, landing hero only), `.badge-premium` (wine "featured/
