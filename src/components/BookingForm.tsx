@@ -106,7 +106,6 @@ export function BookingForm({ salon, serviceId, services }: Props) {
 
   return <section className="shot-reservation" aria-label="Rezervasiya axını">
     <div className="shot-phone">
-      <div className="shot-status"><span>9:41</span><span className="shot-bars">▰▰▰</span></div>
       <header className="shot-topbar">
         <button type="button" aria-label="Geri" onClick={() => step > 1 ? setStep((step - 1) as Step) : router.push(`/salons/${salon.slug}`)}><ChevronLeft size={22} /></button>
         <h1>{step === 1 ? "Rezervasiya et" : step === 2 ? "Tarix və saat seçin" : "Rezervasiyanı təsdiqləyin"}</h1>

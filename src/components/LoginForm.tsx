@@ -129,7 +129,6 @@ function ForgotPasswordForm() {
 function AuthShell({ title, subtitle, children, variant }: { title: string; subtitle: string; children: React.ReactNode; variant: AuthMode }) {
   return <main className={`auth-ref-page ${variant}`}>
     <section className="auth-ref-phone">
-      <div className="auth-ref-status"><span>9:41</span><span>▰▰▰</span></div>
       <Link className="auth-ref-back" href="/" aria-label="Geri">←</Link>
       {variant === "login" ? <div className="auth-brand-block"><h1>SALONOMIA</h1><i>✦</i><p>GÖZƏLLİYİNİZƏ ZAMAN AYIRIN</p></div> : <i className="auth-sparkle">✦</i>}
       <div className="auth-ref-copy"><h2>{title}</h2><p>{subtitle}</p></div>

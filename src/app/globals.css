@@ -56,3 +56,158 @@ html,body{max-width:100%;overflow-x:hidden}.reservation-panel{min-inline-size:0}
 .salon-profile{background:linear-gradient(180deg,#fbfaf7 0,#f5f2ec 52%,#fbfaf7 100%);color:var(--lux-text);font-family:var(--lux-font)}.salon-profile .tag{background:#fffaf2!important;border-color:#eadcc8!important;color:#9a641f!important}.salon-profile .eyebrow{color:#a8732f;letter-spacing:.16em}.salon-profile h1,.salon-profile h2{font-family:var(--lux-serif);font-weight:500;color:#101010}.salon-profile .lead,.salon-profile .muted{color:#6f6963}.salon-hero{max-width:1180px;padding-top:46px;padding-bottom:54px;gap:42px}.salon-hero h1{font-size:clamp(2.8rem,6vw,5.6rem);letter-spacing:-.045em}.salon-facts span{background:#fff;border-color:#e9e1d8;color:#5f574f;box-shadow:0 8px 22px rgba(35,29,22,.04)}.salon-gallery{border-color:#e9e1d8;border-radius:32px;box-shadow:var(--lux-shadow)}.gallery-mini span{color:#6e4517;border-color:rgba(233,225,216,.75);background:rgba(255,250,242,.88)}.salon-profile .button{background:var(--lux-black);color:#f0c978;border-radius:12px;box-shadow:0 12px 24px rgba(0,0,0,.16)}.salon-profile .button:hover{background:#1a1c1f}.salon-profile .button.secondary{background:#fff;color:#171717;border:1px solid #e0d5c8;box-shadow:none}.salon-profile .section.tint{background:#f5f2ec}.service-card,.provider-profile,.policy-panel{border-color:#e9e1d8;background:#fff;border-radius:18px;box-shadow:0 12px 32px rgba(43,36,26,.07)}.service-card h3,.provider-profile h3{color:#121212}.service-card-meta b{color:#a8732f}.provider-photo{background:linear-gradient(135deg,#c99444,#8d5d22)}.policy-note{background:#f3f8ef;border-color:#dfeadb;color:#4d7044}.hours-compact div{border-color:#eee7df}.mobile-sticky-cta{background:linear-gradient(180deg,rgba(251,250,247,0),rgba(251,250,247,.98) 38%)}
 @media(min-width:960px){.salon-details-grid{max-width:1180px;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr)}.service-layout{max-width:1180px}.service-list{grid-template-columns:1fr 1fr}.service-card{grid-template-columns:minmax(0,1fr) auto;align-items:start}.service-card .button{grid-column:1/-1;width:max-content}.provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.policy-panel{top:96px}.mobile-sticky-cta{display:none!important}}
 @media(max-width:760px){.salon-profile{padding-bottom:92px}.salon-hero{padding-top:28px;gap:22px}.salon-gallery{border-radius:24px}.service-list{display:grid;gap:12px}.service-card{border-radius:16px}.provider-profile{border-radius:16px}.policy-panel{border-radius:18px}.salon-profile .button{width:100%;justify-content:center}}
+/* Web-app correction: the design now uses normal responsive web headers, not native-phone mock status bars. */
+.shot-status,
+.shot-bars,
+.auth-ref-status {
+  display: none !important;
+}
+
+.shot-phone,
+.auth-ref-phone {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.reservation-page,
+.auth-ref-page {
+  place-items: start center;
+}
+
+.shot-topbar {
+  height: 64px !important;
+  padding-top: 0 !important;
+  border-bottom: 1px solid rgba(233, 225, 216, .75);
+}
+
+.shot-screen {
+  padding-top: 18px;
+}
+
+.auth-ref-phone {
+  min-height: 100dvh !important;
+  grid-template-rows: 1fr !important;
+}
+
+.auth-ref-back {
+  margin-top: 18px;
+}
+
+.auth-brand-block {
+  margin-top: 52px;
+}
+
+.auth-ref-page.login .auth-ref-copy {
+  margin-top: 0;
+}
+
+.auth-ref-page.register .auth-ref-copy,
+.auth-ref-page.forgot .auth-ref-copy {
+  margin-top: 54px;
+}
+
+@media (min-width: 760px) {
+  .shot-phone,
+  .auth-ref-phone {
+    border-radius: 28px !important;
+    box-shadow: 0 18px 50px rgba(43, 36, 26, .10) !important;
+    border: 1px solid rgba(233, 225, 216, .8) !important;
+  }
+
+  .auth-ref-phone {
+    min-height: 680px !important;
+  }
+
+  .shot-phone {
+    min-height: 720px !important;
+  }
+
+  .auth-ref-back {
+    top: 34px !important;
+  }
+
+  .auth-brand-block {
+    margin-top: 0;
+  }
+
+  .auth-ref-page.login .auth-ref-copy {
+    margin-bottom: 70px;
+  }
+
+  .shot-topbar {
+    border-bottom: 1px solid rgba(233, 225, 216, .75);
+  }
+}
+
+@media (min-width: 900px) {
+  .auth-ref-phone {
+    grid-template-rows: 1fr !important;
+  }
+
+  .auth-brand-block,
+  .auth-ref-page.login .auth-ref-copy,
+  .auth-ref-page.register .auth-ref-copy,
+  .auth-ref-page.forgot .auth-ref-copy,
+  .auth-ref-page.login .auth-ref-form,
+  .auth-ref-page.register .auth-ref-form,
+  .auth-ref-page.forgot .auth-ref-form {
+    grid-row: 1 !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .shot-phone {
+    grid-template-rows: 66px 1fr auto !important;
+  }
+
+  .shot-footer {
+    grid-row: 3 !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-ref-page,
+  .reservation-page {
+    padding: 0 !important;
+    background: #fbfaf7 !important;
+  }
+
+  .auth-ref-phone,
+  .shot-phone {
+    width: 100% !important;
+    min-height: 100dvh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .auth-ref-phone {
+    padding-top: 0;
+  }
+
+  .shot-topbar {
+    height: 58px !important;
+  }
+
+  .shot-screen {
+    padding-top: 10px;
+  }
+
+  .shot-footer {
+    padding-bottom: 18px;
+  }
+
+  .auth-ref-back {
+    margin-top: 14px;
+  }
+
+  .auth-brand-block {
+    margin-top: 34px;
+    margin-bottom: 46px;
+  }
+
+  .auth-ref-page.register .auth-ref-copy,
+  .auth-ref-page.forgot .auth-ref-copy {
+    margin-top: 40px;
+  }
+}
