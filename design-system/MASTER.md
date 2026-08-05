@@ -164,6 +164,77 @@ visible above the field instead of screen-reader-only. `.auth-notice` (error/war
 is a distinct colored block with an icon, not a generic inline `<p>`, used for the blocked-salon
 warning, form errors, and the password-reset success message across all three modes.
 
+### Pattern: shared step-heading / step-badge component (`BookingForm.tsx` + `page.tsx`)
+
+**Bug fixed this pass:** every numbered fieldset heading in the booking flow ("1 Xidmət seçin",
+"2 Usta seçin", "3 Rezervasiya məlumatları", "4 Əlaqə məlumatları") used to render the number
+badge and heading text directly inside a real `<legend>` (`<legend><span>1</span> Xidmət
+seçin</legend>`). Browsers render `<legend>` by cutting a notch into the parent `<fieldset>`'s
+own border and vertically straddling that border line — regardless of `display`/`flex` rules
+applied to the legend's own content. That produced exactly what the product owner flagged from a
+screenshot: the badge appeared to sit too high relative to the heading text (the whole legend box
+was pulled up onto the fieldset's border line instead of flowing normally inside the panel's
+padding), and a "floating", disconnected horizontal line trailing to the right of the heading —
+which was never a designed divider, it was the fieldset's own `border-top` resuming past the
+legend's notch.
+
+**Fix:** `<legend>` is now visually hidden (`.sr-only`) and kept only for its accessible name.
+The visible heading is a plain, fully author-controlled row placed right after it:
+```html
+<legend class="sr-only">Xidmət seçin</legend>
+<div class="step-heading" aria-hidden="true">
+  <span class="step-badge">1</span>
+  <span class="step-heading-text">Xidmət seçin</span>
+  <span class="step-heading-rule"></span>
+</div>
+```
+`.step-heading` is a flex row (`align-items:center`, `gap:var(--space-3)`) so the badge and
+heading text share one true center line; `.step-heading-rule` is `flex:1 1 auto`, so it grows to
+fill the remaining width and is vertically centered by the same `align-items:center`, reading as
+an intentional gold→wine gradient tick (`var(--divider-gradient)`) rather than a stray line.
+`.step-badge` (36px circle, gold-subtle fill, `--brand-gold-dark` numeral) is the single shared
+numbered-step visual used both here and by the landing page's `.step-path` ("Necə işləyir")
+markers — one numbered-step visual language for the whole app, not two.
+
+### Pattern: editorial hero + featured showcase + connected steps (`src/app/page.tsx`)
+
+The landing page previously carried an older, more conservative composition (a hero with a small
+"hero-card" mockup showing **fabricated** data — a fake "16:30" slot and a fake "Studio Bloom"
+agenda entry — competing visually with the headline, a plain salon grid, and a "3 steps" section
+that was just three numbered `<div>`s) that had only been lightly re-skinned (wine badge, eyebrow
+divider, image hover zoom) in an earlier pass, not structurally rebuilt like the auth/booking
+screens. This pass rebuilds it with the same rigor:
+
+- **`.landing-hero`** — an asymmetric two-column layout (`.landing-hero-inner`, `1.15fr .7fr`).
+  Left: the serif wordmark eyebrow, a real display headline with an italicized gold emphasis
+  word, the lead paragraph, a real search affordance (`.search.landing-search`, the same search
+  pattern used on `/salons`, not a generic boxed SaaS search bar), and the trust row. Right:
+  `.landing-visual` — an honest editorial panel (a short serif quote + three real platform
+  commitments, `ShieldCheck`/`CalendarCheck`/`Star`) replacing the old fake-data hero-card mockup.
+  No invented salon names, ratings, or time slots — every number shown elsewhere on the page comes
+  from the actual `prisma.salon.findMany` result.
+- **`.featured-section` / `.featured-salon`** — the single top-rated fetched salon (`orderBy:
+  rating desc`, first of the 7 fetched) gets its own dedicated showcase card using the existing
+  `.badge-premium` wine signal, visually distinct from the regular grid below it (which now shows
+  the remaining 6 salons, so nothing is duplicated between the two sections).
+- **Salon grid** — identical `.card.salon-card` markup to `/salons` (image-wrap, row with
+  rating tag, muted address line, `.service-chips`, CTA button) — the landing page and the salon
+  catalogue read as one product, not two card styles.
+- **`.step-path`** — replaces the old `.steps-grid` (three flat divs) with a connected step
+  visual: three `.step-path-item`s in a row on desktop with a `.step-badge` (the same shared
+  component used for the booking step headings, see above) and a gradient connector line between
+  each pair of badges (`::after`, `var(--divider-gradient)`). Below 900px it becomes a vertical
+  connected list (badge pinned left, connector becomes a vertical line), consistent with the
+  existing `.audit-timeline` vertical-connector pattern used elsewhere in the app.
+- **`.landing-cta`** — a dedicated closing panel (dark gradient fill, inverse text, gold/outline
+  secondary button) instead of ending cold on the salon grid, with two real CTAs (`/salons`,
+  `/register`).
+- `PublicHeader` (`.public-header`, sticky frosted-glass bar) was checked against the new hero and
+  needs no changes — the hero background stays light/warm (`radial-gradient` of
+  `--brand-gold-subtle` into `--background`), so the header's existing light styling still reads
+  correctly; a fully dark hero was considered and rejected specifically to avoid an unscoped
+  header redesign.
+
 ## Radii
 
 | Use | Value |
@@ -225,9 +296,18 @@ repainted from the tokens above instead of three separate hardcoded palettes:
 - **Editorial accents (this pass):** `.eyebrow` / `.eyebrow-divider` (gradient-tick section
   label, used everywhere), `.hero-copy-rule` (vertical gold→wine rule on hero copy blocks),
   `.hero-wordmark` (serif tracked wordmark, landing hero only), `.badge-premium` (wine "featured/
-  premium" badge — top-rated salon cards, salon-detail rating badge), `.confirm-badge` (circular
-  gradient icon badge on the reservation confirmation screen), `.card-image-wrap` (hover-zoom
-  wrapper for salon card photography).
+  premium" badge — top-rated salon cards, salon-detail rating badge, landing featured showcase),
+  `.confirm-badge` (circular gradient icon badge on the reservation confirmation screen),
+  `.card-image-wrap` (hover-zoom wrapper for salon card photography).
+- **Shared numbered-step component (this pass):** `.step-heading` / `.step-badge` /
+  `.step-heading-text` / `.step-heading-rule` (booking fieldset headings, `BookingForm.tsx`) and
+  `.step-path` / `.step-path-item` (landing "Necə işləyir", `page.tsx`) — one visual language for
+  numbered steps, reusing the same `.step-badge` circle in both places. `.sr-only` is a new
+  general-purpose visually-hidden utility (used to keep `<legend>` accessible-name-only once its
+  visible content moved out into `.step-heading`).
+- **Landing rebuild (this pass):** `.landing-hero` / `.landing-hero-inner` / `.landing-search` /
+  `.landing-visual` (editorial hero), `.featured-salon` (dedicated premium-salon showcase),
+  `.landing-cta` (closing CTA panel).
 
 ## Anti-patterns (do not reintroduce)
 

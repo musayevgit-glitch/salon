@@ -248,7 +248,8 @@ function ServiceStep({ salon, services, selectedServiceId, selectedProvider, pro
     </section>
 
     <fieldset className="reservation-panel">
-      <legend><span>1</span> Xidmət seçin</legend>
+      <legend>Xidmət seçin</legend>
+      <div className="step-heading" aria-hidden="true"><span className="step-badge">1</span><span className="step-heading-text">Xidmət seçin</span><span className="step-heading-rule" /></div>
       <div className="service-radio-list">
         {services.map((service, index) => {
           const checked = service.id === selectedServiceId;
@@ -265,7 +266,8 @@ function ServiceStep({ salon, services, selectedServiceId, selectedProvider, pro
     </fieldset>
 
     <fieldset className="reservation-panel">
-      <legend><span>2</span> Usta seçin</legend>
+      <legend>Usta seçin</legend>
+      <div className="step-heading" aria-hidden="true"><span className="step-badge">2</span><span className="step-heading-text">Usta seçin</span><span className="step-heading-rule" /></div>
       <div className="service-radio-list">
         {providers.map((provider) => {
           const checked = provider.id === providerId;
@@ -352,7 +354,8 @@ function ConfirmStep({ salon, selectedService, selectedProvider, date, slot, con
     {needsAuth && <p className="reservation-note auth-gate-note" role="status"><ShieldCheck size={16} aria-hidden="true" /> Rezervasiyanı təsdiqləmək üçün hesabınıza daxil olmalısınız. Bütün seçimləriniz saxlanılıb — daxil olduqdan sonra buraya geri qayıdacaqsınız.</p>}
 
     <fieldset className="reservation-panel">
-      <legend><span>3</span> Rezervasiya məlumatları</legend>
+      <legend>Rezervasiya məlumatları</legend>
+      <div className="step-heading" aria-hidden="true"><span className="step-badge">3</span><span className="step-heading-text">Rezervasiya məlumatları</span><span className="step-heading-rule" /></div>
       <ConfirmRow label="Salon" value={salon.name} />
       <ConfirmRow label="Usta" value={selectedProvider?.name ?? "Seçilməyib"} />
       <ConfirmRow label="Xidmət" value={selectedService?.name ?? "Seçilməyib"} />
@@ -363,7 +366,8 @@ function ConfirmStep({ salon, selectedService, selectedProvider, date, slot, con
     </fieldset>
 
     <fieldset className="reservation-panel">
-      <legend><span>4</span> Əlaqə məlumatları</legend>
+      <legend>Əlaqə məlumatları</legend>
+      <div className="step-heading" aria-hidden="true"><span className="step-badge">4</span><span className="step-heading-text">Əlaqə məlumatları</span><span className="step-heading-rule" /></div>
       <div className="booking-grid">
         <label className="field"><span>Ad və soyad</span><input aria-label="Ad və soyad" value={contact.customerName} onChange={(event) => setContact({ ...contact, customerName: event.target.value })} placeholder="Aysel Məmmədova" /></label>
         <label className="field"><span>E-poçt</span><input aria-label="E-poçt" type="email" value={contact.customerEmail} onChange={(event) => setContact({ ...contact, customerEmail: event.target.value })} placeholder="aysel@example.com" /></label>
