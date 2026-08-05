@@ -15,7 +15,7 @@ export default async function SalonAdmin() {
   const [appointments, serviceCount, customers, providers, hours, serviceRows] = await Promise.all([
     prisma.appointment.count({ where: { salonId: salon.id } }), prisma.service.count({ where: { salonId: salon.id, active: true } }),
     prisma.appointment.findMany({ where: { salonId: salon.id }, distinct: ["customerEmail"], select: { customerEmail: true } }),
-    prisma.provider.findMany({ where: { salonId: salon.id }, orderBy: { name: "asc" } }), prisma.businessHour.findMany({ where: { salonId: salon.id }, orderBy: { weekday: "asc" } }),
+    prisma.provider.findMany({ where: { salonId: salon.id }, orderBy: { name: "asc" }, include: { images: { orderBy: { position: "asc" } } } }), prisma.businessHour.findMany({ where: { salonId: salon.id }, orderBy: { weekday: "asc" } }),
     prisma.service.findMany({ where: { salonId: salon.id }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
   ]);
   const revenue = await prisma.appointment.aggregate({ where: { salonId: salon.id, status: "COMPLETED" }, _sum: { priceCents: true } });

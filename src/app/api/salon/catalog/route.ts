@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTenantMembership } from "@/server/authorization";
 import { prisma } from "@/lib/prisma";
+import { MAX_PORTFOLIO_IMAGES } from "@/lib/portfolio";
 
 const input = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("service"), name: z.string().min(2).max(80), durationMinutes: z.coerce.number().int().min(15).max(480), bufferMinutes: z.coerce.number().int().min(0).max(120), priceCents: z.coerce.number().int().min(0) }),
-  z.object({ kind: z.literal("provider"), name: z.string().min(2).max(80), bio: z.string().max(500).optional() }),
+  z.object({ kind: z.literal("provider"), name: z.string().min(2).max(80), bio: z.string().max(500).optional(), images: z.array(z.string().trim().url().max(2048)).optional() }),
   z.object({ kind: z.literal("hours"), weekday: z.coerce.number().int().min(0).max(6), opensAt: z.string().regex(/^\d{2}:\d{2}$/), closesAt: z.string().regex(/^\d{2}:\d{2}$/) }),
 ]);
 export async function POST(request: Request) {
@@ -35,9 +36,23 @@ export async function POST(request: Request) {
     }
 
     if (data.kind === "provider") {
-      const provider = await prisma.provider.create({
-        data: { salonId: salon.id, name: data.name, bio: data.bio },
+      const images = (data.images ?? []).filter(Boolean);
+      if (images.length > MAX_PORTFOLIO_IMAGES) {
+        return NextResponse.json({ code: "TOO_MANY_PORTFOLIO_IMAGES" }, { status: 400 });
+      }
+
+      const provider = await prisma.$transaction(async (tx) => {
+        const created = await tx.provider.create({
+          data: { salonId: salon.id, name: data.name, bio: data.bio, imageUrl: images[0] ?? null },
+        });
+        if (images.length) {
+          await tx.providerImage.createMany({
+            data: images.map((url, position) => ({ providerId: created.id, url, position })),
+          });
+        }
+        return created;
       });
+
       const services = await prisma.service.findMany({ where: { salonId: salon.id, active: true }, select: { id: true } });
       if (services.length) {
         await prisma.providerService.createMany({

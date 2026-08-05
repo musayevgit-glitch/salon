@@ -16,7 +16,7 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
     where: { slug, status: "ACTIVE" },
     include: {
       services: { where: { active: true }, orderBy: { sortOrder: "asc" } },
-      providers: { where: { active: true }, include: { services: { include: { service: true } }, hours: true } },
+      providers: { where: { active: true }, include: { services: { include: { service: true } }, hours: true, images: { orderBy: { position: "asc" } } } },
       businessHours: { orderBy: { weekday: "asc" } },
     },
   });
@@ -65,7 +65,14 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
           <h2>Ustalar və portfolio</h2>
           <div className="provider-grid">{salon.providers.map((provider) => <article className="provider-profile" key={provider.id}>
             <div className="provider-photo">{provider.imageUrl ? <Image src={provider.imageUrl} alt="" width={120} height={120} /> : provider.name.slice(0, 1)}</div>
-            <div><h3>{provider.name}</h3><p className="muted">{provider.bio || "Portfolio və ixtisaslaşma salon panelindən yenilənə bilər."}</p><p className="small">{provider.services.map((item) => item.service.name).join(" · ")}</p></div>
+            <div>
+              <h3>{provider.name}</h3>
+              <p className="muted">{provider.bio || "Portfolio və ixtisaslaşma salon panelindən yenilənə bilər."}</p>
+              <p className="small">{provider.services.map((item) => item.service.name).join(" · ")}</p>
+              {provider.images.length > 0 && <div className="portfolio-gallery" aria-label={`${provider.name} əl işi qalereyası`}>
+                {provider.images.map((image) => <img key={image.id} src={image.url} alt="" loading="lazy" />)}
+              </div>}
+            </div>
           </article>)}</div>
         </div>
         <aside className="policy-panel">

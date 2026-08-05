@@ -1,0 +1,11 @@
+-- AlterEnum
+-- This migration adds a new value to the AppointmentStatus enum: AUTO_REJECTED.
+-- It distinguishes a system-driven auto-rejection (nobody responded to a pending
+-- reservation before the appointment time) from a salon admin's manual REJECTED
+-- decision, per the MVP business rule (4 distinct statuses).
+--
+-- Postgres requires ALTER TYPE ... ADD VALUE to run outside of any other DDL in the
+-- same transaction (it cannot be combined with statements that reference the new value
+-- in older Postgres versions). This migration therefore contains only this statement,
+-- kept in its own file/migration so Prisma applies it standalone.
+ALTER TYPE "AppointmentStatus" ADD VALUE 'AUTO_REJECTED';

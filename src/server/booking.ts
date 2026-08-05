@@ -112,3 +112,24 @@ export async function setAppointmentStatus(salonId: string, appointmentId: strin
     prisma.auditLog.create({ data: { salonId, action: `APPOINTMENT_${status}`, targetType: "Appointment", targetId: appointment.id } }),
   ]);
 }
+
+// System-driven rejection: distinct from a salon admin's manual REJECTED decision.
+// Any reservation still PENDING once its appointment time has passed means nobody
+// (salon admin) responded in time, so the system auto-rejects it instead of leaving
+// it stuck, and the customer/admin UI shows a visually distinct "Avtomatik rədd edildi"
+// status instead of the manual "Rədd edildi".
+export async function autoRejectOverdueAppointments(now: Date = new Date()) {
+  const overdue = await prisma.appointment.findMany({
+    where: { status: "PENDING", startsAt: { lt: now } },
+    select: { id: true, salonId: true },
+  });
+  if (!overdue.length) return { count: 0 };
+
+  await prisma.$transaction([
+    prisma.appointment.updateMany({ where: { id: { in: overdue.map((item) => item.id) } }, data: { status: "AUTO_REJECTED" } }),
+    prisma.auditLog.createMany({
+      data: overdue.map((item) => ({ salonId: item.salonId, action: "APPOINTMENT_AUTO_REJECTED", targetType: "Appointment", targetId: item.id })),
+    }),
+  ]);
+  return { count: overdue.length };
+}

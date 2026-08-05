@@ -2,17 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
 import { SalonStatusButton } from "@/components/SalonStatusButton";
+import { StatusBadge } from "@/components/StatusBadge";
 import { dateTime, money } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/server/authorization";
 
 export const dynamic = "force-dynamic";
-
-const statusLabel: Record<string, string> = {
-  PENDING: "Gözləyir", CONFIRMED: "Təsdiqlənib", CANCELLED: "Ləğv edilib",
-  REJECTED: "Rədd edilib", COMPLETED: "Tamamlanıb", NO_SHOW: "Gəlmədi",
-  NEEDS_REASSIGNMENT: "Yenidən təyinat",
-};
 
 function auditLabel(action: string) {
   return action.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
@@ -62,7 +57,7 @@ export default async function SalonDetail({ params }: { params: Promise<{ salonI
       <section className="panel"><div className="panel-heading"><div><p className="eyebrow">Əməliyyatlar</p><h2>Son rezervasiyalar</h2></div><span className="muted small">Şəxsi məlumat göstərilmir</span></div>
         {salon.appointments.length ? <div className="appointment-list">{salon.appointments.map(appointment => <div className="appointment-row" key={appointment.id}>
           <div><b>{appointment.service.name}</b><p className="muted small">#{appointment.bookingRef} · {appointment.provider.name}</p></div>
-          <div className="appointment-meta"><span className="status">{statusLabel[appointment.status]}</span><span className="muted small">{dateTime(appointment.startsAt)}</span><b>{money(appointment.priceCents)}</b></div>
+          <div className="appointment-meta"><StatusBadge status={appointment.status} /><span className="muted small">{dateTime(appointment.startsAt)}</span><b>{money(appointment.priceCents)}</b></div>
         </div>)}</div> : <div className="empty-state">Bu salon üçün hələ rezervasiya yoxdur.</div>}
       </section>
       <aside className="panel"><div className="panel-heading"><div><p className="eyebrow">Tenant məlumatı</p><h2>Əlaqə və qaydalar</h2></div></div>

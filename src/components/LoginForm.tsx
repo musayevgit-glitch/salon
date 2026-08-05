@@ -1,12 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
 type AuthMode = "login" | "register" | "forgot";
+
+/** Where to send the customer after a successful login/register. If they were redirected here
+ * mid-reservation (see BookingForm's auth gate) `next` points back at that exact page/step;
+ * otherwise fall back to role-based routing on /post-login. Only same-origin relative paths
+ * are honored to avoid an open-redirect via the query string. */
+function useSafeNext() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+}
+
+function BlockedSalonNotice() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("blocked") !== "salon_inactive") return null;
+  return <p className="auth-ref-error" role="alert">Bu salon hazırda deaktiv edilib. Admin panelinə giriş bloklanıb — sualınız varsa platforma dəstəyi ilə əlaqə saxlayın.</p>;
+}
 
 export function LoginForm({ mode = "login" }: { mode?: AuthMode }) {
   if (mode === "register") return <RegisterForm />;
@@ -16,6 +32,7 @@ export function LoginForm({ mode = "login" }: { mode?: AuthMode }) {
 
 function SignInForm() {
   const router = useRouter();
+  const next = useSafeNext();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +47,7 @@ function SignInForm() {
       return;
     }
     router.refresh();
-    router.push("/post-login");
+    router.push(next ?? "/post-login");
   }
 
   return <AuthShell title="Xoş gəldiniz!" subtitle="Sevdiyiniz salon və ustaları seçin, rezervasiyanızı asanlıqla edin." variant="login">
@@ -40,15 +57,17 @@ function SignInForm() {
       <AuthInput icon="mail" id="login-email" name="email" label="E-poçt" placeholder="Email ünvanınız" type="email" autoComplete="email" />
       <AuthInput icon="lock" id="login-password" name="password" label="Şifrə" type={showPassword ? "text" : "password"} autoComplete="current-password" trailing={<PasswordToggle shown={showPassword} setShown={setShowPassword} />} />
       <Link className="auth-forgot" href="/forgot-password">Şifrəni unutmusunuz?</Link>
+      <BlockedSalonNotice />
       {error && <p className="auth-ref-error" role="alert">{error}</p>}
       <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Giriş edilir…" : "Daxil ol"}</button>
-      <p className="auth-bottom-copy">Hesabınız yoxdur? <Link href="/register">Qeydiyyatdan keçin</Link></p>
+      <p className="auth-bottom-copy">Hesabınız yoxdur? <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}>Qeydiyyatdan keçin</Link></p>
     </form>
   </AuthShell>;
 }
 
 function RegisterForm() {
   const router = useRouter();
+  const next = useSafeNext();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -72,7 +91,7 @@ function RegisterForm() {
       return;
     }
     router.refresh();
-    router.push("/post-login");
+    router.push(next ?? "/post-login");
   }
 
   return <AuthShell title="Hesab yaradın" subtitle="Rezervasiya etmək üçün hesab yaratmağınız tələb olunur." variant="register">
@@ -87,7 +106,7 @@ function RegisterForm() {
       <label className="auth-ref-check"><input required type="checkbox" defaultChecked /> <span>Mən <a href="#">istifadəçi razılaşması</a> və <a href="#">məxfilik siyasəti</a> ilə razıyam.</span></label>
       {error && <p className="auth-ref-error" role="alert">{error}</p>}
       <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Yaradılır…" : "Qeydiyyatdan keç"}</button>
-      <p className="auth-bottom-copy">Artıq hesabınız var? <Link href="/login">Daxil olun</Link></p>
+      <p className="auth-bottom-copy">Artıq hesabınız var? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Daxil olun</Link></p>
     </form>
   </AuthShell>;
 }

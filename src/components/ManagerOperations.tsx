@@ -4,12 +4,12 @@ import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Clo
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppointmentActions } from "@/components/AppointmentActions";
+import { StatusBadge } from "@/components/StatusBadge";
 import { dateLabelFromKey, timeOnly } from "@/lib/format";
 
 type Appointment = { id: string; bookingRef: string; customerName: string; startsAt: string; endsAt: string; status: string; service: string; provider: string };
 type Service = { id: string; name: string; durationMinutes: number; priceCents: number };
 type Provider = { id: string; name: string };
-const stateLabel: Record<string, string> = { PENDING: "Gözləyir", CONFIRMED: "Təsdiqlənib", COMPLETED: "Tamamlanıb", CANCELLED: "Ləğv edilib", REJECTED: "Rədd edilib", NO_SHOW: "Gəlmədi", NEEDS_REASSIGNMENT: "Yenidən təyinat" };
 const dateKey = (value: Date) => value.toISOString().slice(0, 10);
 
 export function ManagerOperations({ appointments, services, providers }: { appointments: Appointment[]; services: Service[]; providers: Provider[] }) {
@@ -36,7 +36,7 @@ export function ManagerOperations({ appointments, services, providers }: { appoi
     <div className="agenda" aria-live="polite">
       {todays.length === 0 ? <div className="agenda-empty"><CalendarDays size={30} /><h2>Bu gün üçün rezervasiya yoxdur</h2><p>Telefonla və ya salonda gələn müştəri üçün walk-in rezervasiyası yarada bilərsiniz.</p><button type="button" className="button secondary" onClick={() => setOpen(true)}><Plus size={17} /> Walk-in əlavə et</button></div> : todays.map((item) => <article className="appointment-card" key={item.id}>
         <div className="appointment-time"><Clock3 size={17} /><b>{timeOnly(item.startsAt)}</b><span>{timeOnly(item.endsAt)}</span></div>
-        <div className="appointment-info"><div className="appointment-title"><h2>{item.service}</h2><span className={`status status-${item.status.toLowerCase()}`}>{stateLabel[item.status] ?? item.status}</span></div><p><UserRound size={15} /> {item.customerName} <span aria-hidden="true">·</span> {item.provider}</p><small>#{item.bookingRef}</small></div>
+        <div className="appointment-info"><div className="appointment-title"><h2>{item.service}</h2><StatusBadge status={item.status} /></div><p><UserRound size={15} /> {item.customerName} <span aria-hidden="true">·</span> {item.provider}</p><small>#{item.bookingRef}</small></div>
         <div className="appointment-card-actions"><AppointmentActions appointmentId={item.id} currentStatus={item.status} /></div>
       </article>)}
     </div>

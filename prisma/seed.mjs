@@ -4,6 +4,14 @@ import { hashPassword } from "better-auth/crypto";
 const prisma = new PrismaClient();
 const localPassword = "Salonomia-Local-Only-1!";
 
+// Replaces a provider's portfolio gallery (idempotent for repeated `pnpm prisma:seed` runs).
+async function seedPortfolioImages(providerId, urls) {
+  await prisma.providerImage.deleteMany({ where: { providerId } });
+  if (!urls.length) return;
+  await prisma.providerImage.createMany({ data: urls.map((url, position) => ({ providerId, url, position })) });
+  await prisma.provider.update({ where: { id: providerId }, data: { imageUrl: urls[0] } });
+}
+
 async function upsertUser(email, name, globalRole = GlobalRole.CUSTOMER) {
   const password = await hashPassword(localPassword);
   const user = await prisma.user.upsert({
@@ -34,6 +42,8 @@ async function main() {
   const service = await prisma.service.upsert({ where: { id: "cm00000000000000000000001" }, update: {}, create: { id: "cm00000000000000000000001", salonId: salon.id, name: "Saç kəsimi və fen", description: "Konsultasiya, forma və fen", durationMinutes: 60, bufferMinutes: 15, priceCents: 4500 } });
   const provider = await prisma.provider.upsert({ where: { id: "cm00000000000000000000002" }, update: {}, create: { id: "cm00000000000000000000002", salonId: salon.id, name: "Aylin Məmmədova", bio: "Saç rəngi və müasir kəsim üzrə mütəxəssis." } });
   await prisma.providerService.upsert({ where: { providerId_serviceId: { providerId: provider.id, serviceId: service.id } }, update: {}, create: { providerId: provider.id, serviceId: service.id } });
+  // Full 10-photo gallery, to prove the "up to 10, no empty placeholders" rule renders correctly.
+  await seedPortfolioImages(provider.id, Array.from({ length: 10 }, (_, i) => `https://picsum.photos/seed/aylin-portfolio-${i + 1}/480/480`));
   for (let weekday = 1; weekday <= 6; weekday++) {
     await prisma.businessHour.upsert({ where: { salonId_weekday: { salonId: salon.id, weekday } }, update: {}, create: { salonId: salon.id, weekday, opensAt: "10:00", closesAt: "20:00" } });
     await prisma.providerHour.upsert({ where: { providerId_weekday: { providerId: provider.id, weekday } }, update: {}, create: { providerId: provider.id, weekday, startsAt: "10:00", endsAt: "19:00" } });
@@ -49,6 +59,9 @@ async function main() {
     for (const [providerIndex, providerName] of demo.providers.entries()) {
       const demoProvider = await prisma.provider.upsert({ where: { id: `cm0000000000000000000002${index}${providerIndex}` }, update: {}, create: { id: `cm0000000000000000000002${index}${providerIndex}`, salonId: demoSalon.id, name: providerName, bio: "Portfolio və fərdi yanaşma ilə çalışan sertifikatlı mütəxəssis." } });
       await prisma.providerService.upsert({ where: { providerId_serviceId: { providerId: demoProvider.id, serviceId: demoService.id } }, update: {}, create: { providerId: demoProvider.id, serviceId: demoService.id } });
+      // Partial gallery (3–4 photos) to prove the gallery renders only real images, no empty tiles.
+      const photoCount = 3 + (providerIndex % 2);
+      await seedPortfolioImages(demoProvider.id, Array.from({ length: photoCount }, (_, i) => `https://picsum.photos/seed/${demo.slug}-${providerIndex}-${i + 1}/400/400`));
       for (let weekday = 1; weekday <= 6; weekday++) await prisma.providerHour.upsert({ where: { providerId_weekday: { providerId: demoProvider.id, weekday } }, update: {}, create: { providerId: demoProvider.id, weekday, startsAt: "10:00", endsAt: "19:00" } });
     }
     for (let weekday = 1; weekday <= 6; weekday++) await prisma.businessHour.upsert({ where: { salonId_weekday: { salonId: demoSalon.id, weekday } }, update: {}, create: { salonId: demoSalon.id, weekday, opensAt: "10:00", closesAt: "20:00" } });
@@ -58,6 +71,26 @@ async function main() {
     const blocked = new Date(end.getTime() + 15 * 60000);
     await prisma.appointment.upsert({ where: { idempotencyKey: `00000000-0000-4000-8000-00000000000${index}` }, update: {}, create: { bookingRef: `DEMO00${index}`, salonId: demoSalon.id, serviceId: demoService.id, providerId: providerRow.id, customerName: ["Aynur Məmmədova", "Leyla Qasımova", "Nigar Əliyeva"][index], customerEmail: `demo.customer${index}@example.com`, customerPhone: "+994501234567", startsAt: start, endsAt: end, blockedEndTime: blocked, status: index === 1 ? "CONFIRMED" : "PENDING", priceCents: demo.service[2], manageTokenHash: `demo-token-hash-${index}`, idempotencyKey: `00000000-0000-4000-8000-00000000000${index}` } });
   }
+
+  // Auto-rejected example: a PENDING reservation whose appointment time is already in the
+  // past, as if the system's auto-reject job (src/app/api/cron/auto-reject) had run — makes
+  // the "Avtomatik rədd edildi" status visible in the UI without needing to trigger the job.
+  const autoRejectedStart = new Date(Date.now() - 2 * 86400000);
+  autoRejectedStart.setHours(11, 0, 0, 0);
+  const autoRejectedEnd = new Date(autoRejectedStart.getTime() + service.durationMinutes * 60000);
+  const autoRejectedBlocked = new Date(autoRejectedEnd.getTime() + service.bufferMinutes * 60000);
+  await prisma.appointment.upsert({
+    where: { idempotencyKey: "00000000-0000-4000-8000-0000000000ar" },
+    update: { status: "AUTO_REJECTED" },
+    create: {
+      bookingRef: "DEMOAUTO", salonId: salon.id, serviceId: service.id, providerId: provider.id,
+      customerName: "Kəmalə Rzayeva", customerEmail: "demo.autoreject@example.com", customerPhone: "+994501234568",
+      startsAt: autoRejectedStart, endsAt: autoRejectedEnd, blockedEndTime: autoRejectedBlocked,
+      status: "AUTO_REJECTED", priceCents: service.priceCents,
+      manageTokenHash: "demo-token-hash-auto-reject", idempotencyKey: "00000000-0000-4000-8000-0000000000ar",
+    },
+  });
+
   console.log("Seed complete");
 }
 

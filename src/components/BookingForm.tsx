@@ -5,6 +5,37 @@ import { useRouter } from "next/navigation";
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Edit, Info, MapPin, ShieldCheck, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { money, timeOnly } from "@/lib/format";
+import { authClient } from "@/lib/auth-client";
+
+/** Reservation draft is kept in sessionStorage so an auth redirect (login/register) can restore
+ * the exact step, service, specialist, date and slot the customer was on before finalizing. */
+type BookingDraft = { step: Step; selectedServiceId: string; providerId: string; date: string; slot: string; contact: { customerName: string; customerEmail: string; customerPhone: string } };
+function draftKey(slug: string) {
+  return `salonomia:booking-draft:${slug}`;
+}
+function readDraft(slug: string): Partial<BookingDraft> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(draftKey(slug));
+    return raw ? (JSON.parse(raw) as Partial<BookingDraft>) : null;
+  } catch {
+    return null;
+  }
+}
+function writeDraft(slug: string, draft: BookingDraft) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(draftKey(slug), JSON.stringify(draft));
+  } catch {
+    /* sessionStorage unavailable (private mode, etc.) — draft simply won't survive redirect */
+  }
+}
+function clearDraft(slug: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(draftKey(slug));
+  } catch { /* no-op */ }
+}
 
 type Provider = { id: string; name: string; bio?: string | null; imageUrl?: string | null };
 type Service = { id: string; name: string; description?: string | null; priceCents: number; durationMinutes: number; bufferMinutes: number; providers: Provider[] };
@@ -35,6 +66,7 @@ function monthTitle(value: Date) {
 
 export function BookingForm({ salon, serviceId, services }: Props) {
   const router = useRouter();
+  const { data: session, isPending: sessionLoading } = authClient.useSession();
   const [step, setStep] = useState<Step>(1);
   const [selectedServiceId, setSelectedServiceId] = useState(serviceId || services[0]?.id || "");
   const selectedService = useMemo(() => services.find((service) => service.id === selectedServiceId) ?? services[0], [selectedServiceId, services]);
@@ -52,6 +84,29 @@ export function BookingForm({ salon, serviceId, services }: Props) {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [contact, setContact] = useState({ customerName: "", customerEmail: "", customerPhone: "" });
+  const [restored, setRestored] = useState(false);
+
+  // Restore an in-progress reservation (service/specialist/date/slot/contact/step) after an
+  // auth redirect sent the customer to /login or /register mid-flow. Browsing never requires
+  // an account — only finalizing a reservation does — so this only matters once, right here.
+  useEffect(() => {
+    const draft = readDraft(salon.slug);
+    if (draft) {
+      if (draft.selectedServiceId) setSelectedServiceId(draft.selectedServiceId);
+      if (draft.providerId) setProviderId(draft.providerId);
+      if (draft.date) setDate(draft.date);
+      if (draft.slot) setSlot(draft.slot);
+      if (draft.contact) setContact(draft.contact);
+      if (draft.step) setStep(draft.step);
+    }
+    setRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+    writeDraft(salon.slug, { step, selectedServiceId, providerId, date, slot, contact });
+  }, [restored, salon.slug, step, selectedServiceId, providerId, date, slot, contact]);
 
   useEffect(() => {
     if (!providers.some((provider) => provider.id === providerId)) setProviderId(providers[0]?.id ?? "");
@@ -74,6 +129,13 @@ export function BookingForm({ salon, serviceId, services }: Props) {
     return () => controller.abort();
   }, [date, providerId, selectedService?.id]);
 
+  function redirectToAuth() {
+    // Reservation drafts are already persisted continuously (see the effect above); we only
+    // need to send the customer to auth and bring them straight back to this exact URL.
+    const next = `${window.location.pathname}${window.location.search}`;
+    router.push(`/login?next=${encodeURIComponent(next)}`);
+  }
+
   async function submit() {
     setError("");
     if (!selectedService?.id || !providerId || !slot) {
@@ -82,6 +144,12 @@ export function BookingForm({ salon, serviceId, services }: Props) {
     }
     if (!contact.customerName || !contact.customerEmail || !contact.customerPhone) {
       setError("Rezervasiya üçün əlaqə məlumatlarını tamamlayın.");
+      return;
+    }
+    // Business rule: browsing and selecting a service/specialist/time never requires an account —
+    // an account is required only at the moment of finalizing the reservation.
+    if (!sessionLoading && !session) {
+      redirectToAuth();
       return;
     }
     setPending(true);
@@ -93,16 +161,22 @@ export function BookingForm({ salon, serviceId, services }: Props) {
     const json = await response.json().catch(() => ({}));
     setPending(false);
     if (!response.ok) {
+      if (response.status === 401 || json.code === "UNAUTHENTICATED") {
+        redirectToAuth();
+        return;
+      }
       setError(json.code === "DOUBLE_BOOKING_CONFLICT" ? "Bu saat artıq başqa istifadəçi tərəfindən rezervasiya edilib. Başqa saat seçin." : json.code || "Rezervasiya yaradılmadı. Yenidən cəhd edin.");
       setSlot("");
       setStep(2);
       return;
     }
+    clearDraft(salon.slug);
     router.push(`/confirm/${json.bookingRef}?token=${encodeURIComponent(json.token)}`);
   }
 
   const canContinue = step === 1 ? Boolean(selectedService && selectedProvider) : step === 2 ? Boolean(date && slot) : true;
-  const continueLabel = step === 3 ? (pending ? "Rezervasiya yaradılır..." : "Rezervasiyanı yarat") : "Davam et";
+  const needsAuth = step === 3 && !sessionLoading && !session;
+  const continueLabel = step === 3 ? (pending ? "Rezervasiya yaradılır..." : needsAuth ? "Daxil olub davam et" : "Rezervasiyanı yarat") : "Davam et";
 
   return <section className="shot-reservation" aria-label="Rezervasiya axını">
     <div className="shot-phone">
@@ -115,7 +189,7 @@ export function BookingForm({ salon, serviceId, services }: Props) {
       <div className="shot-screen">
         {step === 1 && <ServiceStep salon={salon} services={services} selectedServiceId={selectedService?.id ?? ""} selectedProvider={selectedProvider} providerId={providerId} providers={providers} setProviderId={setProviderId} setSelectedServiceId={setSelectedServiceId} />}
         {step === 2 && <DateTimeStep selectedService={selectedService} selectedProvider={selectedProvider} date={date} setDate={setDate} calendarMonth={calendarMonth} setCalendarMonth={setCalendarMonth} slots={slots} slot={slot} setSlot={setSlot} loading={loading} onEdit={() => setStep(1)} />}
-        {step === 3 && <ConfirmStep salon={salon} selectedService={selectedService} selectedProvider={selectedProvider} date={date} slot={slot} contact={contact} setContact={setContact} />}
+        {step === 3 && <ConfirmStep salon={salon} selectedService={selectedService} selectedProvider={selectedProvider} date={date} slot={slot} contact={contact} setContact={setContact} needsAuth={needsAuth} />}
         {error && <p role="alert" className="shot-error">{error}</p>}
       </div>
 
@@ -211,8 +285,9 @@ function CalendarCard({ value, month, setMonth, onSelect }: { value: string; mon
   </section>;
 }
 
-function ConfirmStep({ salon, selectedService, selectedProvider, date, slot, contact, setContact }: { salon: SalonSummary; selectedService?: Service; selectedProvider?: Provider; date: string; slot: string; contact: { customerName: string; customerEmail: string; customerPhone: string }; setContact: (value: { customerName: string; customerEmail: string; customerPhone: string }) => void }) {
+function ConfirmStep({ salon, selectedService, selectedProvider, date, slot, contact, setContact, needsAuth }: { salon: SalonSummary; selectedService?: Service; selectedProvider?: Provider; date: string; slot: string; contact: { customerName: string; customerEmail: string; customerPhone: string }; setContact: (value: { customerName: string; customerEmail: string; customerPhone: string }) => void; needsAuth?: boolean }) {
   return <>
+    {needsAuth && <p className="shot-note" role="status"><ShieldCheck size={17} /> Rezervasiyanı təsdiqləmək üçün hesabınıza daxil olmalısınız. Bütün seçimləriniz saxlanılıb — daxil olduqdan sonra buraya geri qayıdacaqsınız.</p>}
     <section className="shot-confirm-card">
       <h2>Rezervasiya məlumatları</h2>
       <ConfirmRow label="Salon" value={salon.name} />
@@ -233,7 +308,7 @@ function ConfirmStep({ salon, selectedService, selectedProvider, date, slot, con
       <ul><li>Rezervasiya təsdiqi salon admini tərəfindən ediləcək.</li><li>Gözləmədə statusu ilə yaradılır.</li><li>24 saat qalmış ləğv edilərsə qeyd edilə bilər.</li><li>Gecikmə halında rezervasiya ləğv oluna bilər.</li></ul>
     </section>
     <div className="shot-total"><span>Ümumi məbləğ</span><b>{selectedService ? money(selectedService.priceCents) : "Seçilməyib"}</b></div>
-    <p className="shot-pay-note"><Clock3 size={16} /> Ödəniş salon daxilində ediləcək.</p>
+    <p className="shot-pay-note"><Clock3 size={16} /> Ödəniş salon daxilində nağd və ya kartla həyata keçiriləcək.</p>
     <p className="shot-agree">Rezervasiya yaratmaqla qaydaları qəbul etmiş olursunuz.</p>
   </>;
 }
