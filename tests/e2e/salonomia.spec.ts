@@ -63,7 +63,9 @@ test.describe("public mobile and booking flow", () => {
 
     await page.getByRole("link", { name: "Seç" }).first().click();
     await expect(page).toHaveURL(new RegExp(`/salons/${salonSlug}/book`));
-    await expect(page.getByLabel("Tarix")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Rezervasiya et" })).toBeVisible();
+    await page.getByRole("button", { name: "Davam et" }).click();
+    await expect(page.getByRole("heading", { name: "Tarix və saat seçin" })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
@@ -76,13 +78,15 @@ test.describe("public mobile and booking flow", () => {
     expect(body.slots?.length ?? 0).toBeGreaterThan(0);
 
     await page.goto(`/salons/${salonSlug}/book?service=${serviceId}`);
+    await page.getByRole("button", { name: "Davam et" }).click();
+    await page.getByLabel("Tarix").fill(date);
+    await expect(page.locator(".shot-times button").first()).toBeVisible();
+    await page.locator(".shot-times button").first().click();
+    await page.getByRole("button", { name: "Davam et" }).click();
     await page.getByLabel("Ad və soyad").fill(`E2E Customer ${Date.now()}`);
     await page.getByLabel("E-poçt").fill(`e2e-${Date.now()}@example.com`);
     await page.getByLabel("Telefon").fill("+994501112233");
-    await page.getByLabel("Tarix").fill(date);
-    await expect(page.locator(".slot").first()).toBeVisible();
-    await page.locator(".slot").first().click();
-    await page.getByRole("button", { name: "Rezervasiyanı təsdiqlə" }).click();
+    await page.getByRole("button", { name: "Rezervasiyanı yarat" }).click();
     await expect(page).toHaveURL(/\/confirm\/.+token=/);
     await expect(page.getByRole("heading", { name: /Rezervasiya #/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Rezervasiyanızı idarə edin" })).toBeVisible();

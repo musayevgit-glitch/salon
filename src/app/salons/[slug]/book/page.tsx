@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { PublicHeader } from "@/components/PublicHeader";
 import { BookingForm } from "@/components/BookingForm";
 import { prisma } from "@/lib/prisma";
 
@@ -21,15 +20,8 @@ export default async function Book({ params, searchParams }: { params: Promise<{
   if (!salon || !salon.services.length) notFound();
   const initialService = salon.services.find((service) => service.id === serviceId) ?? salon.services[0];
   return <>
-    <PublicHeader />
     <main className="reservation-page">
       <div className="shell reservation-shell">
-        <div className="reservation-page-head">
-          <a className="back-link" href={`/salons/${salon.slug}`}>← Geri</a>
-          <p className="reservation-kicker">Gözəlliyinizə zaman ayırın</p>
-          <h1>Rezervasiya et</h1>
-          <p className="lead">Xidməti, tarixi və uyğun saatı seçin.</p>
-        </div>
         <BookingForm
           salon={{ id: salon.id, slug: salon.slug, name: salon.name, city: salon.city, address: salon.address, rating: salon.rating.toString(), imageUrl: salon.imageUrl }}
           serviceId={initialService.id}
