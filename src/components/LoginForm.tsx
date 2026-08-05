@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
@@ -21,7 +21,7 @@ function useSafeNext() {
 function BlockedSalonNotice() {
   const searchParams = useSearchParams();
   if (searchParams.get("blocked") !== "salon_inactive") return null;
-  return <p className="auth-ref-error" role="alert">Bu salon hazırda deaktiv edilib. Admin panelinə giriş bloklanıb — sualınız varsa platforma dəstəyi ilə əlaqə saxlayın.</p>;
+  return <p className="auth-ref-notice warning" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>Bu salon hazırda deaktiv edilib. Admin panelinə giriş bloklanıb — sualınız varsa platforma dəstəyi ilə əlaqə saxlayın.</span></p>;
 }
 
 export function LoginForm({ mode = "login" }: { mode?: AuthMode }) {
@@ -58,7 +58,7 @@ function SignInForm() {
       <AuthInput icon="lock" id="login-password" name="password" label="Şifrə" type={showPassword ? "text" : "password"} autoComplete="current-password" trailing={<PasswordToggle shown={showPassword} setShown={setShowPassword} />} />
       <Link className="auth-forgot" href="/forgot-password">Şifrəni unutmusunuz?</Link>
       <BlockedSalonNotice />
-      {error && <p className="auth-ref-error" role="alert">{error}</p>}
+      {error && <p className="auth-ref-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
       <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Giriş edilir…" : "Daxil ol"}</button>
       <p className="auth-bottom-copy">Hesabınız yoxdur? <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}>Qeydiyyatdan keçin</Link></p>
     </form>
@@ -104,7 +104,7 @@ function RegisterForm() {
       <AuthInput icon="lock" id="register-password" name="password" label="Şifrə" type={showPassword ? "text" : "password"} autoComplete="new-password" trailing={<PasswordToggle shown={showPassword} setShown={setShowPassword} />} />
       <AuthInput icon="lock" id="register-repeat" name="repeatPassword" label="Şifrəni təkrar edin" type={showRepeat ? "text" : "password"} autoComplete="new-password" trailing={<PasswordToggle shown={showRepeat} setShown={setShowRepeat} />} />
       <label className="auth-ref-check"><input required type="checkbox" defaultChecked /> <span>Mən <a href="#">istifadəçi razılaşması</a> və <a href="#">məxfilik siyasəti</a> ilə razıyam.</span></label>
-      {error && <p className="auth-ref-error" role="alert">{error}</p>}
+      {error && <p className="auth-ref-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
       <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Yaradılır…" : "Qeydiyyatdan keç"}</button>
       <p className="auth-bottom-copy">Artıq hesabınız var? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Daxil olun</Link></p>
     </form>
@@ -137,8 +137,8 @@ function ForgotPasswordForm() {
     <form action={submit} className="auth-ref-form forgot">
       <div className="auth-envelope" aria-hidden="true"><span>✦</span><div><LockKeyhole size={28} /></div><span>✦</span></div>
       <AuthInput icon="mail" id="forgot-email" name="email" label="Email ünvanınız" type="email" autoComplete="email" />
-      {error && <p className="auth-ref-error" role="alert">{error}</p>}
-      {message && <p className="auth-ref-success" role="status">{message}</p>}
+      {error && <p className="auth-ref-notice error" role="alert"><AlertTriangle size={17} aria-hidden="true" /><span>{error}</span></p>}
+      {message && <p className="auth-ref-notice success" role="status"><CheckCircle2 size={17} aria-hidden="true" /><span>{message}</span></p>}
       <button className="auth-ref-primary" disabled={pending} type="submit">{pending ? "Göndərilir…" : "Linki göndər"}</button>
       <Link className="auth-ref-secondary" href="/login">Daxil ol səhifəsinə qayıt</Link>
     </form>

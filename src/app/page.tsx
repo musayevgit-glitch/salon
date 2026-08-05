@@ -19,7 +19,8 @@ export default async function Home() {
     <main>
       <section className="hero">
         <div className="shell hero-shell">
-          <div>
+          <div className="hero-copy hero-copy-rule">
+          <p className="hero-wordmark">Salonomia</p>
           <p className="tag"><Sparkles size={14} aria-hidden="true" /> Gözəllik üçün vaxt ayır</p>
           <h1>Sənin üçün doğru salon, doğru vaxt.</h1>
           <p className="lead">Etibarlı salonları kəşf et, xidmətini və ustasını seç, real boş saatlardan birinə bir neçə saniyəyə rezervasiya et.</p>
@@ -40,13 +41,14 @@ export default async function Home() {
       <section id="salonlar" className="section">
         <div className="shell">
           <div className="section-head">
-            <div><h2>Seçilmiş salonlar</h2><p className="muted">Keyfiyyətli xidmət, rahat rezervasiya.</p></div>
+            <div><p className="eyebrow-divider"><span>Kürasiya edilmiş seçim</span></p><h2>Seçilmiş salonlar</h2><p className="muted">Keyfiyyətli xidmət, rahat rezervasiya.</p></div>
             <Link className="button secondary" href="/salons">Hamısını gör</Link>
           </div>
-          <div className="grid">{salons.map((salon) => <article className="card salon-card" key={salon.id}>
-            {salon.imageUrl && <Image src={salon.imageUrl} alt="" width={900} height={600} sizes="(max-width: 760px) 100vw, 33vw" />}
+          <div className="grid">{salons.map((salon, index) => <article className="card salon-card" key={salon.id}>
+            <div className="card-image-wrap">{salon.imageUrl && <Image src={salon.imageUrl} alt="" width={900} height={600} sizes="(max-width: 760px) 100vw, 33vw" />}</div>
             <div className="card-body">
               <div className="row"><h3>{salon.name}</h3><span className="tag"><Star size={13} fill="currentColor" /> {salon.rating.toString()}</span></div>
+              {index === 0 && <p><span className="badge-premium">Ən yüksək qiymətləndirmə</span></p>}
               <p className="muted small"><MapPin size={14} /> {salon.city} · {salon.address}</p>
               <p className="small service-chips">{salon.services.map((service) => <span key={service.id}>{service.name}</span>)}</p>
               <Link className="button" href={`/salons/${salon.slug}`}>Rezervasiya et</Link>
@@ -56,7 +58,7 @@ export default async function Home() {
       </section>
       <section id="nece-isleyir" className="section tint">
         <div className="shell">
-          <div className="section-head"><div><p className="eyebrow">Müştəri flow-u</p><h2>Üç addımda hazır</h2></div></div>
+          <div className="section-head"><div><p className="eyebrow-divider"><span>Müştəri flow-u</span></p><h2>Üç addımda hazır</h2></div></div>
           <div className="grid steps-grid">
             <div><span>01</span><h3>Kəşf et</h3><p className="muted">Şəhərə, xidmətə və zövqünə uyğun salonu seç.</p></div>
             <div><span>02</span><h3>Vaxtını seç</h3><p className="muted">Xidmət, usta və real boş saatı müəyyənləşdir.</p></div>

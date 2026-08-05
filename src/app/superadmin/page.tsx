@@ -15,7 +15,7 @@ export default async function SuperAdmin() {
 
   return <AdminShell title="Platforma idarəetməsi" links={[{ href: "/superadmin", label: "Salonlar" }]}>
     <div className="page-heading">
-      <div><p className="eyebrow">Platforma nəzarəti</p><h1>Salonlar</h1><p className="muted">Tenant vəziyyəti və fəaliyyətini bir yerdən izləyin.</p></div>
+      <div><p className="eyebrow-divider"><span>Platforma nəzarəti</span></p><h1>Salonlar</h1><p className="muted">Tenant vəziyyəti və fəaliyyətini bir yerdən izləyin.</p></div>
     </div>
     <div className="metrics">
       <div className="metric"><span className="muted">Cəmi salon</span><b>{salons.length}</b></div>

@@ -58,6 +58,61 @@ Gold is an accent, used sparingly: active states, icons, selected controls, focu
 It is never used for body text or large fills. Primary buttons are `--button-dark` with
 `--text-inverse` text. Backgrounds are warm cream/white; never neon, never dark mode.
 
+**Accessibility rule:** `--brand-gold` (#C58B3F) measures only ~2.75:1 against
+`--background`/`--surface`, which fails WCAG AA for text at any size (needs 4.5:1 for normal
+text, 3:1 for large text/icons). `--brand-gold-dark` (#8F6028) measures ~5:1 and passes.
+**Rule: any `color:` (text/icon glyph) use of gold MUST be `--brand-gold-dark`, never bare
+`--brand-gold`/`--violet`/`--primary`.** The light `--brand-gold` is reserved for non-text uses
+only: fills, borders, box-shadows, focus rings, selected-state backgrounds.
+
+### Creative uplift pass — direction and rationale
+
+The product owner explicitly rejected a prior pass that only fixed the gold contrast bug and
+declined a real visual uplift. This pass makes an actual decision: **keep the aged-gold/ink/ivory
+base — it is genuinely premium and already threaded through every stylesheet — but add real
+editorial depth instead of a flat single-accent look.** Concretely:
+
+- **New secondary accent — deep wine/bordeaux**, used *only* where something is deliberately
+  singled out as premium/featured, never as a general UI color (so it stays a deliberate signal,
+  not visual noise):
+  ```css
+  --accent-wine:#7A2E39;--accent-wine-dark:#5C2129;--accent-wine-soft:#F5E7E6;--accent-wine-border:#E6CFCC;
+  ```
+  Contrast: `--accent-wine-dark` on `--accent-wine-soft` ≈ 8.9:1 (AAA), on `--surface`/`--background`
+  ≈ 9.6:1. Used by `.badge-premium` (top-rated salon card badges, salon-detail "Premium salon"
+  badge) and the gradient dividers below. Never used for large fills or as a competing primary.
+- **Gradient divider tokens** — `--divider-gradient` (gold → wine) power a small 2px tick before
+  every section eyebrow (`.eyebrow`, `.eyebrow-divider`) and a 3px vertical rule on hero copy
+  blocks (`.hero-copy-rule`), replacing flat text-only eyebrows with a considered editorial mark.
+  Because `.eyebrow` itself carries the upgrade, every admin surface (salon admin catalog/team/
+  hours, manager operations, appointment action sheets, super admin tenant detail) inherits it
+  automatically — one CSS change, whole-app consistency, no risk of missed pages.
+- **Tinted elevation** — `--shadow-gold` / `--shadow-wine` replace flat grey shadows on primary
+  button hover and salon-card hover with warm, color-matched shadows (`.button:hover`,
+  `.salon-card:hover`), which reads noticeably more considered than generic drop shadow.
+- **Photography treatment** — salon card images now sit in `.card-image-wrap` and scale in
+  gently on hover (`transform:scale(1.045)`, `transition .5s`, disabled under
+  `prefers-reduced-motion`), so listing photography feels art-directed rather than static stock
+  thumbnails.
+- **Serif wordmark eyebrow** — the landing hero now opens with a tracked-out serif "Salonomia"
+  mark (`.hero-wordmark`) above the tagline, giving the hero an actual masthead instead of
+  starting cold on the H1.
+- Palette alternatives considered and rejected: a full black/cream/single-gold editorial system
+  (loses the warmth that already reads well in the booking flow and auth screens) and a
+  forest-green secondary accent (too close to the existing `--success` semantic color and would
+  create ambiguity with status badges). Deep wine reads as "premium signal" without colliding
+  with any existing status/semantic color.
+
+Files touched for markup in this pass: `src/app/page.tsx` (landing hero + salon grid),
+`src/app/salons/page.tsx` (catalog + featured badge), `src/app/salons/[slug]/page.tsx` (hero,
+services, team, policy eyebrows), `src/app/confirm/[bookingRef]/page.tsx` (confirmation badge),
+`src/app/salonadmin/page.tsx` and `src/app/superadmin/page.tsx` (eyebrow treatment). The
+reservation form (`BookingForm.tsx`) and auth screens (`LoginForm.tsx`, register,
+forgot-password) were intentionally left markup-untouched — they carry the most fragile,
+state-heavy wiring in the app (auth-redirect draft preservation, slot selection, manage-token
+flows) — but they still inherit every token-level upgrade above (shadows, gradients where
+`.eyebrow`/`.button` are used) for free since they consume the same shared classes.
+
 ## Radii
 
 | Use | Value |
@@ -109,6 +164,12 @@ repainted from the tokens above instead of three separate hardcoded palettes:
 - **Empty states:** `.empty-state`, `.catalog-empty`, `.agenda-empty`, `.shot-empty`.
 - **Navigation:** `.public-header` (customer), `.side` / `.admin` (salon admin + super admin shell,
   `AdminShell.tsx`), `.shot-topbar` (reservation flow), `.auth-ref-back` (auth flow).
+- **Editorial accents (this pass):** `.eyebrow` / `.eyebrow-divider` (gradient-tick section
+  label, used everywhere), `.hero-copy-rule` (vertical gold→wine rule on hero copy blocks),
+  `.hero-wordmark` (serif tracked wordmark, landing hero only), `.badge-premium` (wine "featured/
+  premium" badge — top-rated salon cards, salon-detail rating badge), `.confirm-badge` (circular
+  gradient icon badge on the reservation confirmation screen), `.card-image-wrap` (hover-zoom
+  wrapper for salon card photography).
 
 ## Anti-patterns (do not reintroduce)
 

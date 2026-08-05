@@ -28,8 +28,8 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
     <PublicHeader />
     <main className="salon-profile">
       <section className="salon-hero shell">
-        <div className="salon-hero-copy">
-          <p className="tag"><Star size={14} fill="currentColor" aria-hidden="true" /> {salon.rating.toString()} · Premium salon</p>
+        <div className="salon-hero-copy hero-copy-rule">
+          <p><span className="badge-premium"><Star size={14} fill="currentColor" aria-hidden="true" /> {salon.rating.toString()} · Premium salon</span></p>
           <h1>{salon.name}</h1>
           <p className="lead">{salon.description}</p>
           <div className="salon-facts">
@@ -47,7 +47,7 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
 
       <section className="section tint">
         <div className="shell service-layout">
-          <div className="section-head"><div><p className="eyebrow">Xidmət seçimi</p><h2>Xidmətlər</h2><p className="muted">Qiymət, müddət və uyğun boş saatlar serverdə yoxlanılır.</p></div></div>
+          <div className="section-head"><div><p className="eyebrow-divider"><span>Xidmət seçimi</span></p><h2>Xidmətlər</h2><p className="muted">Qiymət, müddət və uyğun boş saatlar serverdə yoxlanılır.</p></div></div>
           <div className="service-list">{salon.services.map((service) => <article className="service-card" key={service.id}>
             <div>
               <h3>{service.name}</h3>
@@ -61,7 +61,7 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
 
       <section className="shell section salon-details-grid">
         <div>
-          <p className="eyebrow">Komanda</p>
+          <p className="eyebrow-divider"><span>Komanda</span></p>
           <h2>Ustalar və portfolio</h2>
           <div className="provider-grid">{salon.providers.map((provider) => <article className="provider-profile" key={provider.id}>
             <div className="provider-photo">{provider.imageUrl ? <Image src={provider.imageUrl} alt="" width={120} height={120} /> : provider.name.slice(0, 1)}</div>
@@ -76,7 +76,7 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
           </article>)}</div>
         </div>
         <aside className="policy-panel">
-          <p className="eyebrow">Planlama</p>
+          <p className="eyebrow-divider"><span>Planlama</span></p>
           <h2>İş saatı və qaydalar</h2>
           <dl className="hours-compact">{salon.businessHours.map((hour) => <div key={hour.id}><dt>{days[hour.weekday] ?? hour.weekday}</dt><dd>{hour.closed ? "Bağlı" : `${hour.opensAt}–${hour.closesAt}`}</dd></div>)}</dl>
           <div className="policy-note"><CalendarCheck size={18} /><p>Rezervasiyanı ən azı {Math.round(salon.bookingLeadMinutes / 60)} saat əvvəl yaradın. Ləğv limiti: {salon.cancellationHours} saat.</p></div>

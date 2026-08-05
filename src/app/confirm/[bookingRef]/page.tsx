@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { Clock3 } from "lucide-react";
+import { CalendarCheck, Clock3 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CustomerBookingActions } from "@/components/CustomerBookingActions";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -18,7 +18,8 @@ export default async function Confirm({ params, searchParams }: { params: Promis
   return <>
     <PublicHeader />
     <main className="shell booking">
-      <p className="tag">{appointmentStatusDescription[a.status] ?? "Rezervasiya qeydə alındı"}</p>
+      <div className="confirm-badge" aria-hidden="true"><CalendarCheck size={28} /></div>
+      <p className="eyebrow-divider"><span>{appointmentStatusDescription[a.status] ?? "Rezervasiya qeydə alındı"}</span></p>
       <h1 style={{ fontSize: "2.3rem" }}>Rezervasiya #{a.bookingRef}</h1>
       <section className="card card-body">
         <h2>{a.salon.name}</h2>
